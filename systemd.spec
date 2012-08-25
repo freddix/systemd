@@ -7,13 +7,13 @@
 #
 Summary:	A System and Service Manager
 Name:		systemd
-Version:	188
+Version:	189
 Release:	1
 Epoch:		1
 License:	GPL v2+
 Group:		Base
 Source0:	http://www.freedesktop.org/software/systemd/%{name}-%{version}.tar.xz
-# Source0-md5:	d89b42699695554949d072ef46c0dfc9
+# Source0-md5:	ac2eb313f5dce79622f60aac56bca66d
 Source10:	%{name}-locale.conf
 Source11:	%{name}-loop.conf
 Source12:	%{name}-sysctl.conf
@@ -26,7 +26,6 @@ Source30:	udev-65-permissions.rules
 #
 Patch0:		%{name}-freddix.patch
 Patch1:		%{name}-machine_id_writable.patch
-Patch2:		%{name}-use_kmsg.patch
 URL:		http://www.freedesktop.org/wiki/Software/systemd
 BuildRequires:	autoconf
 BuildRequires:	automake
@@ -144,7 +143,6 @@ udev API documentation.
 %setup -q
 %patch0 -p1
 %patch1 -p1
-%patch2 -p1
 
 %build
 %{__aclocal} -I m4
