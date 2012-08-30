@@ -8,7 +8,7 @@
 Summary:	A System and Service Manager
 Name:		systemd
 Version:	189
-Release:	1
+Release:	2
 Epoch:		1
 License:	GPL v2+
 Group:		Base
@@ -18,9 +18,8 @@ Source10:	%{name}-locale.conf
 Source11:	%{name}-loop.conf
 Source12:	%{name}-sysctl.conf
 Source13:	%{name}-vconsole.conf
-Source14:	%{name}-os-release
-Source15:	%{name}-timezone
-Source16:	00-keyboard.conf
+Source14:	%{name}-timezone
+Source15:	00-keyboard.conf
 # udev stuff
 Source30:	udev-65-permissions.rules
 #
@@ -184,9 +183,8 @@ install %{SOURCE10} $RPM_BUILD_ROOT/etc/locale.conf
 install %{SOURCE11} $RPM_BUILD_ROOT/etc/modules-load.d/loop.conf
 install %{SOURCE12} $RPM_BUILD_ROOT/etc/sysctl.d/sysctl.conf
 install %{SOURCE13} $RPM_BUILD_ROOT/etc/vconsole.conf
-install %{SOURCE14} $RPM_BUILD_ROOT/etc/os-release
-install %{SOURCE15} $RPM_BUILD_ROOT/etc/timezone
-install %{SOURCE16} $RPM_BUILD_ROOT/etc/X11/xorg.conf.d
+install %{SOURCE14} $RPM_BUILD_ROOT/etc/timezone
+install %{SOURCE15} $RPM_BUILD_ROOT/etc/X11/xorg.conf.d
 
 install %{SOURCE30} $RPM_BUILD_ROOT%{_prefix}/lib/udev/rules.d/65-permissions.rules
 
@@ -208,7 +206,7 @@ rm -rf $RPM_BUILD_ROOT
 /usr/bin/systemd-machine-id-setup > /dev/null 2>&1 || :
 /usr/lib/systemd/systemd-random-seed save > /dev/null 2>&1 || :
 /usr/bin/systemctl daemon-reexec > /dev/null 2>&1 || :
-/usr/bin/systemctl start systemd-udev.service > /dev/null 2>&1 || :
+/usr/bin/systemctl start systemd-udev.service > /dev/null 2>&1 || :
 
 %post units
 if [ "$1" = "1" ] ; then
@@ -288,7 +286,6 @@ fi
 %config(noreplace) %verify(not md5 mtime size) /etc/hostname
 %config(noreplace) %verify(not md5 mtime size) /etc/locale.conf
 %config(noreplace) %verify(not md5 mtime size) /etc/modules-load.d/loop.conf
-%config(noreplace) %verify(not md5 mtime size) /etc/os-release
 %config(noreplace) %verify(not md5 mtime size) /etc/sysctl.d/sysctl.conf
 %config(noreplace) %verify(not md5 mtime size) /etc/timezone
 %config(noreplace) %verify(not md5 mtime size) /etc/vconsole.conf

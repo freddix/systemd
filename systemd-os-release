@@ -1,8 +1,0 @@
-# Operating system identification
-NAME=Freddix
-VERSION="1.2"
-ID=freddix
-VERSION_ID=1.2
-PRETTY_NAME="Freddix 1.2 Ratman"
-ANSI_COLOR=1;34
-
