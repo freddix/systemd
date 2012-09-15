@@ -8,17 +8,15 @@
 Summary:	A System and Service Manager
 Name:		systemd
 Version:	189
-Release:	2
+Release:	5
 Epoch:		1
 License:	GPL v2+
 Group:		Base
 Source0:	http://www.freedesktop.org/software/systemd/%{name}-%{version}.tar.xz
 # Source0-md5:	ac2eb313f5dce79622f60aac56bca66d
-Source10:	%{name}-locale.conf
+Source10:	00-keyboard.conf
 Source11:	%{name}-loop.conf
 Source12:	%{name}-sysctl.conf
-Source13:	%{name}-vconsole.conf
-Source15:	00-keyboard.conf
 # udev stuff
 Source30:	udev-65-permissions.rules
 #
@@ -45,11 +43,11 @@ Requires(post,postun):	/usr/sbin/ldconfig
 Requires:       %{name}-libs = %{epoch}:%{version}-%{release}
 Requires:	%{name}-units = %{epoch}:%{version}-%{release}
 Provides:	virtual(init-daemon)
+Requires:	core
 Requires:	dbus
 Requires:	kbd
 Requires:	kmod
 Requires:	python-dbus
-Requires:	terminus-font-console
 Requires:	udev = %{epoch}:%{version}-%{release}
 Requires:	util-linux
 BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
@@ -175,14 +173,9 @@ rm -r $RPM_BUILD_ROOT%{_sysconfdir}/systemd/system/*.target.wants
 touch $RPM_BUILD_ROOT%{_sysconfdir}/machine-id
 touch $RPM_BUILD_ROOT%{_sysconfdir}/machine-info
 
-# main system configuration
-# TODO: move to core
-echo "freddix" > $RPM_BUILD_ROOT/etc/hostname
-install %{SOURCE10} $RPM_BUILD_ROOT/etc/locale.conf
-install %{SOURCE11} $RPM_BUILD_ROOT/etc/modules-load.d/loop.conf
-install %{SOURCE12} $RPM_BUILD_ROOT/etc/sysctl.d/sysctl.conf
-install %{SOURCE13} $RPM_BUILD_ROOT/etc/vconsole.conf
-install %{SOURCE15} $RPM_BUILD_ROOT/etc/X11/xorg.conf.d
+install %{SOURCE10} $RPM_BUILD_ROOT/etc/X11/xorg.conf.d
+install %{SOURCE11} $RPM_BUILD_ROOT/usr/lib/modules-load.d/loop.conf
+install %{SOURCE12} $RPM_BUILD_ROOT/usr/lib/sysctl.d/sysctl.conf
 
 install %{SOURCE30} $RPM_BUILD_ROOT%{_prefix}/lib/udev/rules.d/65-permissions.rules
 
@@ -281,12 +274,9 @@ fi
 %config(noreplace) %verify(not md5 mtime size) %{_sysconfdir}/systemd/logind.conf
 %config(noreplace) %verify(not md5 mtime size) %{_sysconfdir}/systemd/user.conf
 
-%config(noreplace) %verify(not md5 mtime size) /etc/hostname
-%config(noreplace) %verify(not md5 mtime size) /etc/locale.conf
-%config(noreplace) %verify(not md5 mtime size) /etc/modules-load.d/loop.conf
-%config(noreplace) %verify(not md5 mtime size) /etc/sysctl.d/sysctl.conf
-%config(noreplace) %verify(not md5 mtime size) /etc/vconsole.conf
 %config(noreplace) %verify(not md5 mtime size) /etc/X11/xorg.conf.d/00-keyboard.conf
+/usr/lib/modules-load.d/loop.conf
+/usr/lib/sysctl.d/sysctl.conf
 
 %ghost %config(noreplace) %{_sysconfdir}/machine-id
 %ghost %config(noreplace) %{_sysconfdir}/machine-info
