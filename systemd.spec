@@ -18,7 +18,6 @@ Source10:	%{name}-locale.conf
 Source11:	%{name}-loop.conf
 Source12:	%{name}-sysctl.conf
 Source13:	%{name}-vconsole.conf
-Source14:	%{name}-timezone
 Source15:	00-keyboard.conf
 # udev stuff
 Source30:	udev-65-permissions.rules
@@ -183,7 +182,6 @@ install %{SOURCE10} $RPM_BUILD_ROOT/etc/locale.conf
 install %{SOURCE11} $RPM_BUILD_ROOT/etc/modules-load.d/loop.conf
 install %{SOURCE12} $RPM_BUILD_ROOT/etc/sysctl.d/sysctl.conf
 install %{SOURCE13} $RPM_BUILD_ROOT/etc/vconsole.conf
-install %{SOURCE14} $RPM_BUILD_ROOT/etc/timezone
 install %{SOURCE15} $RPM_BUILD_ROOT/etc/X11/xorg.conf.d
 
 install %{SOURCE30} $RPM_BUILD_ROOT%{_prefix}/lib/udev/rules.d/65-permissions.rules
@@ -287,7 +285,6 @@ fi
 %config(noreplace) %verify(not md5 mtime size) /etc/locale.conf
 %config(noreplace) %verify(not md5 mtime size) /etc/modules-load.d/loop.conf
 %config(noreplace) %verify(not md5 mtime size) /etc/sysctl.d/sysctl.conf
-%config(noreplace) %verify(not md5 mtime size) /etc/timezone
 %config(noreplace) %verify(not md5 mtime size) /etc/vconsole.conf
 %config(noreplace) %verify(not md5 mtime size) /etc/X11/xorg.conf.d/00-keyboard.conf
 
