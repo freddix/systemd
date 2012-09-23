@@ -7,13 +7,13 @@
 #
 Summary:	A System and Service Manager
 Name:		systemd
-Version:	189
-Release:	5
+Version:	191
+Release:	1
 Epoch:		1
 License:	GPL v2+
 Group:		Base
 Source0:	http://www.freedesktop.org/software/systemd/%{name}-%{version}.tar.xz
-# Source0-md5:	ac2eb313f5dce79622f60aac56bca66d
+# Source0-md5:	a5e4bfaf900a9e2480827feaf58556cb
 Source10:	00-keyboard.conf
 Source11:	%{name}-loop.conf
 Source12:	%{name}-sysctl.conf
@@ -28,6 +28,7 @@ BuildRequires:	automake
 BuildRequires:	cryptsetup-devel
 BuildRequires:	dbus-devel
 BuildRequires:	docbook-style-xsl
+BuildRequires:	gobject-introspection-devel
 BuildRequires:	gperf
 BuildRequires:	kmod-devel
 BuildRequires:	libcap-devel
@@ -453,7 +454,7 @@ fi
 %files -n udev-devel
 %defattr(644,root,root,755)
 %attr(755,root,root) %{_libdir}/libudev.so
-#%{_datadir}/gir-1.0/GUdev-1.0.gir
+%{_datadir}/gir-1.0/GUdev-1.0.gir
 %{_includedir}/libudev.h
 %{_npkgconfigdir}/udev.pc
 %{_pkgconfigdir}/libudev.pc
@@ -462,7 +463,7 @@ fi
 %defattr(644,root,root,755)
 %attr(755,root,root) %ghost %{_libdir}/libgudev-1.0.so.?
 %attr(755,root,root) %{_libdir}/libgudev-1.0.so.*.*.*
-#%{_libdir}/girepository-1.0/*.typelib
+%{_libdir}/girepository-1.0/*.typelib
 
 %files -n udev-glib-devel
 %defattr(644,root,root,755)
