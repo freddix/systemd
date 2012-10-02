@@ -7,13 +7,13 @@
 #
 Summary:	A System and Service Manager
 Name:		systemd
-Version:	191
-Release:	1
+Version:	193
+Release:	5
 Epoch:		1
 License:	GPL v2+
 Group:		Base
 Source0:	http://www.freedesktop.org/software/systemd/%{name}-%{version}.tar.xz
-# Source0-md5:	a5e4bfaf900a9e2480827feaf58556cb
+# Source0-md5:	732a9de2b1d2a15cab639c987ff9e90e
 Source10:	00-keyboard.conf
 Source11:	%{name}-loop.conf
 Source12:	%{name}-sysctl.conf
@@ -87,6 +87,15 @@ Requires(post):	coreutils
 Basic configuration files, directories and installation tool for the
 systemd system and service manager.
 
+%package -n python-%{name}
+Summary:	Python support for systemd
+Group:		Libraries/Python
+Requires:	%{name}-libs = %{epoch}:%{version}-%{release}
+%pyrequires_eq	python-libs
+
+%description -n python-%{name}
+Python support for systemd.
+
 %package -n udev
 Summary:	udev is the device manager for the Linux kernel.
 Group:		Base
@@ -139,7 +148,7 @@ udev API documentation.
 %prep
 %setup -q
 %patch0 -p1
-%patch1 -p1
+#%patch1 -p1
 
 %build
 %{__aclocal} -I m4
@@ -183,22 +192,21 @@ install %{SOURCE30} $RPM_BUILD_ROOT%{_prefix}/lib/udev/rules.d/65-permissions.ru
 ln -s %{_prefix}/lib/systemd/systemd $RPM_BUILD_ROOT%{_sbindir}/init
 ln -s %{_prefix}/lib/systemd/systemd $RPM_BUILD_ROOT%{_bindir}/systemd
 
-# compat with old stuff
-ln -s %{_bindir}/systemctl $RPM_BUILD_ROOT%{_sbindir}/halt
-ln -s %{_bindir}/systemctl $RPM_BUILD_ROOT%{_sbindir}/poweroff
-ln -s %{_bindir}/systemctl $RPM_BUILD_ROOT%{_sbindir}/reboot
-ln -s %{_bindir}/systemctl $RPM_BUILD_ROOT%{_sbindir}/runlevel
-ln -s %{_bindir}/systemctl $RPM_BUILD_ROOT%{_sbindir}/shutdown
-ln -s %{_bindir}/systemctl $RPM_BUILD_ROOT%{_sbindir}/telinit
+cat > $RPM_BUILD_ROOT%{systemdtmpfilesdir}/console.conf <<EOF
+d /run/console 0755 root root
+
+EOF
+
+rm -f $RPM_BUILD_ROOT%{py_sitedir}/systemd/*.{la,py}
 
 %clean
 rm -rf $RPM_BUILD_ROOT
 
 %post
-/usr/bin/systemd-machine-id-setup > /dev/null 2>&1 || :
+systemd-machine-id-setup > /dev/null 2>&1 || :
 /usr/lib/systemd/systemd-random-seed save > /dev/null 2>&1 || :
-/usr/bin/systemctl daemon-reexec > /dev/null 2>&1 || :
-/usr/bin/systemctl start systemd-udev.service > /dev/null 2>&1 || :
+systemctl daemon-reexec > /dev/null 2>&1 || :
+systemctl start systemd-udev.service > /dev/null 2>&1 || :
 
 %post units
 if [ "$1" = "1" ] ; then
@@ -212,7 +220,7 @@ fi
 
 %preun units
 if [ "$1" = "0" ]; then
-    /usr/bin/systemctl disable getty@.service \
+    systemctl disable getty@.service \
     systemd-readahead-collect.service \
     systemd-readahead-replay.service  \
     remote-fs.target > /dev/null 2>&1 || :
@@ -221,8 +229,8 @@ fi
 
 %postun
 if [ "$1" -ge "1" ] ; then
-	/usr/bin/systemctl daemon-reload > /dev/null 2>&1 || :
-	/usr/bin/systemctl try-restart systemd-logind.service >/dev/null 2>&1 || :
+	systemctl daemon-reload > /dev/null 2>&1 || :
+	systemctl try-restart systemd-logind.service >/dev/null 2>&1 || :
 fi
 
 %post	libs -p /usr/sbin/ldconfig
@@ -254,6 +262,7 @@ fi
 %attr(755,root,root) %{_bindir}/systemd-stdio-bridge
 %attr(755,root,root) %{_bindir}/systemd-detect-virt
 %attr(755,root,root) %{_bindir}/systemd-delta
+%attr(755,root,root) %{_sbindir}/init
 
 %attr(755,root,root) %{_prefix}/lib/systemd/system-generators/systemd-cryptsetup-generator
 %attr(755,root,root) %{_prefix}/lib/systemd/system-generators/systemd-fstab-generator
@@ -261,14 +270,6 @@ fi
 %attr(755,root,root) %{_prefix}/lib/systemd/system-generators/systemd-system-update-generator
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-*
-
-%attr(755,root,root) %{_sbindir}/halt
-%attr(755,root,root) %{_sbindir}/init
-%attr(755,root,root) %{_sbindir}/poweroff
-%attr(755,root,root) %{_sbindir}/reboot
-%attr(755,root,root) %{_sbindir}/runlevel
-%attr(755,root,root) %{_sbindir}/shutdown
-%attr(755,root,root) %{_sbindir}/telinit
 
 %config(noreplace) %verify(not md5 mtime size) %{_sysconfdir}/systemd/system.conf
 %config(noreplace) %verify(not md5 mtime size) %{_sysconfdir}/systemd/journald.conf
@@ -310,10 +311,15 @@ fi
 /etc/dbus-1/system.d/org.freedesktop.login1.conf
 
 /etc/xdg/systemd
+
+# systemd --user
 %{_prefix}/lib/systemd/user
-%{_prefix}/lib/tmpfiles.d/systemd.conf
-%{_prefix}/lib/tmpfiles.d/tmp.conf
-%{_prefix}/lib/tmpfiles.d/x11.conf
+
+%{systemdtmpfilesdir}/console.conf
+%{systemdtmpfilesdir}/systemd.conf
+%{systemdtmpfilesdir}/tmp.conf
+%{systemdtmpfilesdir}/x11.conf
+
 %{_prefix}/lib/udev/rules.d/70-uaccess.rules
 %{_prefix}/lib/udev/rules.d/71-seat.rules
 %{_prefix}/lib/udev/rules.d/73-seat-late.rules
@@ -373,6 +379,12 @@ fi
 %{_mandir}/man5/tmpfiles.d.5*
 %{_mandir}/man8/systemd-tmpfiles.8*
 
+%files -n python-%{name}
+%defattr(644,root,root,755)
+%dir %{py_sitedir}/systemd
+%attr(755,root,root) %{py_sitedir}/systemd/*.so
+%attr(755,root,root) %{py_sitedir}/systemd/*.py[co]
+
 # UDev ------------------------------------------
 
 %files -n udev
@@ -411,6 +423,7 @@ fi
 %{_prefix}/lib/udev/rules.d/60-persistent-storage.rules
 %{_prefix}/lib/udev/rules.d/60-persistent-v4l.rules
 %{_prefix}/lib/udev/rules.d/61-accelerometer.rules
+%{_prefix}/lib/udev/rules.d/64-btrfs.rules
 %{_prefix}/lib/udev/rules.d/65-permissions.rules
 %{_prefix}/lib/udev/rules.d/70-power-switch.rules
 %{_prefix}/lib/udev/rules.d/75-net-description.rules
@@ -447,9 +460,9 @@ fi
 %dev(c,1,3) %attr(666,root,root) /dev/null
 %dev(c,1,5) %attr(666,root,root) /dev/zero
 %dev(c,1,8) %attr(666,root,root) /dev/random
-%dev(c,4,0) %attr(660,root,root) /dev/tty0
-%dev(c,5,0) %attr(660,root,tty) /dev/tty
-%dev(c,5,1) %attr(660,root,console) /dev/console
+%dev(c,4,0) %attr(620,root,tty) /dev/tty0
+%dev(c,5,0) %attr(666,root,tty) /dev/tty
+%dev(c,5,1) %attr(600,root,root) /dev/console
 
 %files -n udev-devel
 %defattr(644,root,root,755)
