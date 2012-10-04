@@ -7,13 +7,13 @@
 #
 Summary:	A System and Service Manager
 Name:		systemd
-Version:	193
-Release:	5
+Version:	194
+Release:	1
 Epoch:		1
 License:	GPL v2+
 Group:		Base
 Source0:	http://www.freedesktop.org/software/systemd/%{name}-%{version}.tar.xz
-# Source0-md5:	732a9de2b1d2a15cab639c987ff9e90e
+# Source0-md5:	0ebb73aea444693b9b86f7a76f5df23c
 Source10:	00-keyboard.conf
 Source11:	%{name}-loop.conf
 Source12:	%{name}-sysctl.conf
