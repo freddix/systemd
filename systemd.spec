@@ -8,7 +8,7 @@
 Summary:	A System and Service Manager
 Name:		systemd
 Version:	194
-Release:	1
+Release:	2
 Epoch:		1
 License:	GPL v2+
 Group:		Base
@@ -17,6 +17,8 @@ Source0:	http://www.freedesktop.org/software/systemd/%{name}-%{version}.tar.xz
 Source10:	00-keyboard.conf
 Source11:	%{name}-loop.conf
 Source12:	%{name}-sysctl.conf
+Source20:	dbus.service
+Source21:	dbus.socket
 # udev stuff
 Source30:	udev-65-permissions.rules
 #
@@ -186,6 +188,8 @@ touch $RPM_BUILD_ROOT%{_sysconfdir}/machine-info
 install %{SOURCE10} $RPM_BUILD_ROOT/etc/X11/xorg.conf.d
 install %{SOURCE11} $RPM_BUILD_ROOT/usr/lib/modules-load.d/loop.conf
 install %{SOURCE12} $RPM_BUILD_ROOT/usr/lib/sysctl.d/sysctl.conf
+
+install %{SOURCE20} %{SOURCE21} $RPM_BUILD_ROOT%{_prefix}/lib/systemd/user
 
 install %{SOURCE30} $RPM_BUILD_ROOT%{_prefix}/lib/udev/rules.d/65-permissions.rules
 
