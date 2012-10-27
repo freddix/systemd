@@ -8,7 +8,7 @@
 Summary:	A System and Service Manager
 Name:		systemd
 Version:	195
-Release:	3
+Release:	4
 Epoch:		1
 License:	GPL v2+
 Group:		Base
@@ -153,7 +153,9 @@ udev API documentation.
 %prep
 %setup -q
 %patch0 -p1
+%ifarch %{_lib} == "lib64"
 %patch1 -p1
+%endif
 
 %build
 %{__aclocal} -I m4
