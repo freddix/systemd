@@ -7,23 +7,25 @@
 #
 Summary:	A System and Service Manager
 Name:		systemd
-Version:	194
-Release:	2
+Version:	195
+Release:	3
 Epoch:		1
 License:	GPL v2+
 Group:		Base
 Source0:	http://www.freedesktop.org/software/systemd/%{name}-%{version}.tar.xz
-# Source0-md5:	0ebb73aea444693b9b86f7a76f5df23c
+# Source0-md5:	38e8c8144e7e6e5bc3ce32eb4260e680
 Source10:	00-keyboard.conf
 Source11:	%{name}-loop.conf
 Source12:	%{name}-sysctl.conf
 Source20:	dbus.service
 Source21:	dbus.socket
+Source22:	%{name}-user
+Source23:	%{name}-stop-user-sessions.service
 # udev stuff
 Source30:	udev-65-permissions.rules
 #
 Patch0:		%{name}-freddix.patch
-Patch1:		%{name}-machine_id_writable.patch
+Patch1:		%{name}-localectl-lib64.patch
 URL:		http://www.freedesktop.org/wiki/Software/systemd
 BuildRequires:	autoconf
 BuildRequires:	automake
@@ -33,6 +35,7 @@ BuildRequires:	docbook-style-xsl
 BuildRequires:	gobject-introspection-devel
 BuildRequires:	gperf
 BuildRequires:	kmod-devel
+BuildRequires:	libblkid-devel
 BuildRequires:	libcap-devel
 BuildRequires:	libtool
 BuildRequires:	libxslt-progs
@@ -150,7 +153,7 @@ udev API documentation.
 %prep
 %setup -q
 %patch0 -p1
-#%patch1 -p1
+%patch1 -p1
 
 %build
 %{__aclocal} -I m4
@@ -170,7 +173,7 @@ udev API documentation.
 rm -rf $RPM_BUILD_ROOT
 install -d $RPM_BUILD_ROOT{/etc/{udev/rules.d,X11/xorg.conf.d},%{_sbindir}}
 
-%{__make} install \
+%{__make} -j1 install \
 	DESTDIR=$RPM_BUILD_ROOT
 
 %{__rm} -r $RPM_BUILD_ROOT%{_docdir}/%{name}
@@ -190,6 +193,10 @@ install %{SOURCE11} $RPM_BUILD_ROOT/usr/lib/modules-load.d/loop.conf
 install %{SOURCE12} $RPM_BUILD_ROOT/usr/lib/sysctl.d/sysctl.conf
 
 install %{SOURCE20} %{SOURCE21} $RPM_BUILD_ROOT%{_prefix}/lib/systemd/user
+install %{SOURCE22} $RPM_BUILD_ROOT%{_prefix}/lib/systemd
+install %{SOURCE23} $RPM_BUILD_ROOT%{_prefix}/lib/systemd/system
+ln -s ../systemd-stop-user-sessions.service \
+	$RPM_BUILD_ROOT/usr/lib/systemd/system/shutdown.target.wants/systemd-stop-user-sessions.service
 
 install %{SOURCE30} $RPM_BUILD_ROOT%{_prefix}/lib/udev/rules.d/65-permissions.rules
 
@@ -250,22 +257,26 @@ fi
 %defattr(644,root,root,755)
 %doc DISTRO_PORTING README TODO
 
+%attr(755,root,root) %{_bindir}/hostnamectl
 %attr(755,root,root) %{_bindir}/journalctl
+%attr(755,root,root) %{_bindir}/localectl
 %attr(755,root,root) %{_bindir}/loginctl
 %attr(755,root,root) %{_bindir}/systemd
-%attr(755,root,root) %{_bindir}/systemd-ask-password
-%attr(755,root,root) %{_bindir}/systemd-inhibit
-%attr(755,root,root) %{_bindir}/systemd-machine-id-setup
-%attr(755,root,root) %{_bindir}/systemd-notify
-%attr(755,root,root) %{_bindir}/systemd-tty-ask-password-agent
 %attr(755,root,root) %{_bindir}/systemd-analyze
+%attr(755,root,root) %{_bindir}/systemd-ask-password
 %attr(755,root,root) %{_bindir}/systemd-cat
 %attr(755,root,root) %{_bindir}/systemd-cgls
 %attr(755,root,root) %{_bindir}/systemd-cgtop
+%attr(755,root,root) %{_bindir}/systemd-coredumpctl
+%attr(755,root,root) %{_bindir}/systemd-delta
+%attr(755,root,root) %{_bindir}/systemd-detect-virt
+%attr(755,root,root) %{_bindir}/systemd-inhibit
+%attr(755,root,root) %{_bindir}/systemd-machine-id-setup
+%attr(755,root,root) %{_bindir}/systemd-notify
 %attr(755,root,root) %{_bindir}/systemd-nspawn
 %attr(755,root,root) %{_bindir}/systemd-stdio-bridge
-%attr(755,root,root) %{_bindir}/systemd-detect-virt
-%attr(755,root,root) %{_bindir}/systemd-delta
+%attr(755,root,root) %{_bindir}/systemd-tty-ask-password-agent
+%attr(755,root,root) %{_bindir}/timedatectl
 %attr(755,root,root) %{_sbindir}/init
 
 %attr(755,root,root) %{_prefix}/lib/systemd/system-generators/systemd-cryptsetup-generator
@@ -283,6 +294,7 @@ fi
 %config(noreplace) %verify(not md5 mtime size) /etc/X11/xorg.conf.d/00-keyboard.conf
 /usr/lib/modules-load.d/loop.conf
 /usr/lib/sysctl.d/sysctl.conf
+/usr/lib/sysctl.d/coredump.conf
 
 %ghost %config(noreplace) %{_sysconfdir}/machine-id
 %ghost %config(noreplace) %{_sysconfdir}/machine-info
@@ -459,14 +471,6 @@ fi
 %defattr(644,root,root,755)
 %attr(755,root,root) %ghost %{_libdir}/libudev.so.?
 %attr(755,root,root) %{_libdir}/libudev.so.*.*.*
-
-# TODO: move it somewhere
-%dev(c,1,3) %attr(666,root,root) /dev/null
-%dev(c,1,5) %attr(666,root,root) /dev/zero
-%dev(c,1,8) %attr(666,root,root) /dev/random
-%dev(c,4,0) %attr(620,root,tty) /dev/tty0
-%dev(c,5,0) %attr(666,root,tty) /dev/tty
-%dev(c,5,1) %attr(600,root,root) /dev/console
 
 %files -n udev-devel
 %defattr(644,root,root,755)

@@ -1,0 +1,12 @@
+diff -aurN systemd-195.orig/src/locale/localectl.c systemd-195/src/locale/localectl.c
+--- systemd-195.orig/src/locale/localectl.c	2012-10-27 09:57:05.926124703 +0200
++++ systemd-195/src/locale/localectl.c	2012-10-27 09:57:44.726508834 +0200
+@@ -315,7 +315,7 @@
+         if (!locales)
+                 return log_oom();
+ 
+-        fd = open("/usr/lib/locale/locale-archive", O_RDONLY|O_NOCTTY|O_CLOEXEC);
++        fd = open("/usr/lib64/locale/locale-archive", O_RDONLY|O_NOCTTY|O_CLOEXEC);
+         if (fd < 0) {
+                 log_error("Failed to open locale archive: %m");
+                 r = -errno;
