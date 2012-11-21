@@ -7,13 +7,13 @@
 #
 Summary:	A System and Service Manager
 Name:		systemd
-Version:	195
-Release:	6
+Version:	196
+Release:	1
 Epoch:		1
 License:	GPL v2+
 Group:		Base
 Source0:	http://www.freedesktop.org/software/systemd/%{name}-%{version}.tar.xz
-# Source0-md5:	38e8c8144e7e6e5bc3ce32eb4260e680
+# Source0-md5:	05ebd7f108e420e2b4e4810ea4b3c810
 Source10:	00-keyboard.conf
 Source11:	%{name}-loop.conf
 Source12:	%{name}-sysctl.conf
@@ -220,6 +220,8 @@ systemd-machine-id-setup > /dev/null 2>&1 || :
 /usr/lib/systemd/systemd-random-seed save > /dev/null 2>&1 || :
 systemctl daemon-reexec > /dev/null 2>&1 || :
 systemctl start systemd-udev.service > /dev/null 2>&1 || :
+udevadm hwdb --update > /dev/null 2>&1 || :
+journalctl --update-catalog > /dev/null 2>&1 || :
 
 %post units
 if [ "$1" = "1" ] ; then
@@ -376,6 +378,9 @@ fi
 %dir %{_prefix}/lib/sysctl.d
 %dir %{_prefix}/lib/tmpfiles.d
 
+%dir %{_prefix}/lib/systemd/catalog
+%{_prefix}/lib/systemd/catalog/systemd.catalog
+
 %dir %{_prefix}/lib/systemd/ntp-units.d
 %dir %{_prefix}/lib/systemd/system-generators
 %dir %{_prefix}/lib/systemd/system-shutdown
@@ -469,6 +474,7 @@ fi
 %{_prefix}/lib/systemd/system/sysinit.target.wants/systemd-udevd.service
 %{_prefix}/lib/systemd/system/sysinit.target.wants/systemd-vconsole-setup.service
 
+# targets
 %{_prefix}/lib/systemd/system/bluetooth.target
 %{_prefix}/lib/systemd/system/cryptsetup.target
 %{_prefix}/lib/systemd/system/ctrl-alt-del.target
@@ -479,7 +485,6 @@ fi
 %{_prefix}/lib/systemd/system/graphical.target
 %{_prefix}/lib/systemd/system/halt.target
 %{_prefix}/lib/systemd/system/hibernate.target
-%{_prefix}/lib/systemd/system/http-daemon.target
 %{_prefix}/lib/systemd/system/kexec.target
 %{_prefix}/lib/systemd/system/mail-transfer-agent.target
 %{_prefix}/lib/systemd/system/network.target
@@ -502,7 +507,9 @@ fi
 %{_prefix}/lib/systemd/system/system-update.target
 %{_prefix}/lib/systemd/system/time-sync.target
 %{_prefix}/lib/systemd/system/umount.target
+%{_prefix}/lib/systemd/system/hybrid-sleep.target
 
+# mounts
 %{_prefix}/lib/systemd/system/dev-hugepages.mount
 %{_prefix}/lib/systemd/system/dev-mqueue.mount
 %{_prefix}/lib/systemd/system/proc-sys-fs-binfmt_misc.automount
@@ -512,17 +519,21 @@ fi
 %{_prefix}/lib/systemd/system/sys-kernel-debug.mount
 %{_prefix}/lib/systemd/system/tmp.mount
 
+# sockets
 %{_prefix}/lib/systemd/system/systemd-initctl.socket
 %{_prefix}/lib/systemd/system/systemd-journald.socket
 %{_prefix}/lib/systemd/system/systemd-shutdownd.socket
 %{_prefix}/lib/systemd/system/syslog.socket
 
+# timers
 %{_prefix}/lib/systemd/system/systemd-readahead-done.timer
 %{_prefix}/lib/systemd/system/systemd-tmpfiles-clean.timer
 
+# paths
 %{_prefix}/lib/systemd/system/systemd-ask-password-console.path
 %{_prefix}/lib/systemd/system/systemd-ask-password-wall.path
 
+# services
 %{_prefix}/lib/systemd/system/autovt@.service
 %{_prefix}/lib/systemd/system/console-getty.service
 %{_prefix}/lib/systemd/system/console-shell.service
@@ -544,6 +555,7 @@ fi
 %{_prefix}/lib/systemd/system/systemd-halt.service
 %{_prefix}/lib/systemd/system/systemd-hibernate.service
 %{_prefix}/lib/systemd/system/systemd-hostnamed.service
+%{_prefix}/lib/systemd/system/systemd-hybrid-sleep.service
 %{_prefix}/lib/systemd/system/systemd-initctl.service
 %{_prefix}/lib/systemd/system/systemd-journal-flush.service
 %{_prefix}/lib/systemd/system/systemd-journald.service
@@ -626,6 +638,7 @@ fi
 %dir %{_sysconfdir}/udev
 %dir %{_sysconfdir}/udev/rules.d
 %dir %{_prefix}/lib/udev
+%dir %{_prefix}/lib/udev/hwdb.d
 %dir %{_prefix}/lib/udev/keymaps
 %dir %{_prefix}/lib/udev/rules.d
 
@@ -666,6 +679,14 @@ fi
 %{_prefix}/lib/udev/rules.d/95-keyboard-force-release.rules
 %{_prefix}/lib/udev/rules.d/95-keymap.rules
 %{_prefix}/lib/udev/rules.d/95-udev-late.rules
+
+# hwdb
+%{_prefix}/lib/udev/hwdb.d/20-OUI.hwdb
+%{_prefix}/lib/udev/hwdb.d/20-acpi-vendor.hwdb
+%{_prefix}/lib/udev/hwdb.d/20-pci-classes.hwdb
+%{_prefix}/lib/udev/hwdb.d/20-pci-vendor-product.hwdb
+%{_prefix}/lib/udev/hwdb.d/20-usb-classes.hwdb
+%{_prefix}/lib/udev/hwdb.d/20-usb-vendor-product.hwdb
 
 %{_sysconfdir}/udev/udev.conf
 
