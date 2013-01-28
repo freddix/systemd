@@ -7,13 +7,13 @@
 #
 Summary:	A System and Service Manager
 Name:		systemd
-Version:	196
-Release:	1
+Version:	197
+Release:	3
 Epoch:		1
 License:	GPL v2+
 Group:		Base
 Source0:	http://www.freedesktop.org/software/systemd/%{name}-%{version}.tar.xz
-# Source0-md5:	05ebd7f108e420e2b4e4810ea4b3c810
+# Source0-md5:	56a860dceadfafe59f40141eb5223743
 Source10:	00-keyboard.conf
 Source11:	%{name}-loop.conf
 Source12:	%{name}-sysctl.conf
@@ -24,8 +24,8 @@ Source23:	%{name}-stop-user-sessions.service
 # udev stuff
 Source30:	udev-65-permissions.rules
 #
-Patch0:		%{name}-freddix.patch
-Patch1:		%{name}-localectl-lib64.patch
+Patch0:		%{name}-localectl-lib64.patch
+Patch1:		0001-dbus-fix-serialization-of-calendar-timers.patch
 URL:		http://www.freedesktop.org/wiki/Software/systemd
 BuildRequires:	autoconf
 BuildRequires:	automake
@@ -37,12 +37,14 @@ BuildRequires:	gperf
 BuildRequires:	kmod-devel
 BuildRequires:	libblkid-devel
 BuildRequires:	libcap-devel
+BuildRequires:	libmicrohttpd-devel
 BuildRequires:	libtool
 BuildRequires:	libxslt-progs
 BuildRequires:	m4
 BuildRequires:	pam-devel
 BuildRequires:	pciutils-devel
 BuildRequires:	pkg-config
+BuildRequires:	qrencode-devel
 BuildRequires:	usbutils
 BuildRequires:	vala
 Requires(post,postun):	/usr/sbin/ldconfig
@@ -53,9 +55,10 @@ Requires:	core
 Requires:	dbus
 Requires:	kbd
 Requires:	kmod
-Requires:	python-dbus
+Requires:	python-pygobject3
 Requires:	udev = %{epoch}:%{version}-%{release}
 Requires:	util-linux
+Obsoletes:	nss-myhostname
 BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
 
 %description
@@ -71,6 +74,8 @@ work as a drop-in replacement for sysvinit.
 %package libs
 Summary:        systemd libraries
 Group:          Libraries
+Requires(post,postun):	/usr/sbin/ldconfig
+Requires(post,preun):	sed
 
 %description libs
 systemd libraries.
@@ -152,10 +157,10 @@ udev API documentation.
 
 %prep
 %setup -q
-%patch0 -p1
 %if %{_lib} == "lib64"
-%patch1 -p1
+%patch0 -p1
 %endif
+%patch1 -p1
 
 %build
 %{__aclocal} -I m4
@@ -168,8 +173,10 @@ udev API documentation.
 	--disable-silent-rules	\
 	--disable-static	\
 	--disable-tcpwrap	\
-	--with-distro=freddix
+	--with-sysvinit-path=	\
+	--with-sysvrcnd-path=
 %{__make}
+
 
 %install
 rm -rf $RPM_BUILD_ROOT
@@ -242,7 +249,24 @@ if [ "$1" -ge "1" ] ; then
 	systemctl try-restart systemd-logind.service >/dev/null 2>&1 || :
 fi
 
-%post	libs -p /usr/sbin/ldconfig
+%post libs
+/usr/sbin/ldconfig
+if [ -f %{_sysconfdir}/nsswitch.conf ]; then
+    %{__sed} -i -e '
+    /^hosts:/ !b
+    /\<myhostname\>/ b
+    s/[[:blank:]]*$/ myhostname/
+    ' %{_sysconfdir}/nsswitch.conf
+fi
+
+%preun libs
+if [ "$1" -eq 0 -a -f %{_sysconfdir}/nsswitch.conf ] ; then
+    %{__sed} -i -e '
+    /^hosts:/ !b
+    s/[[:blank:]]\+myhostname\>//
+    ' %{_sysconfdir}/nsswitch.conf
+fi
+
 %postun	libs -p /usr/sbin/ldconfig
 
 %post	-n udev-libs -p /usr/sbin/ldconfig
@@ -279,6 +303,7 @@ fi
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-ac-power
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-binfmt
+%attr(755,root,root) %{_prefix}/lib/systemd/systemd-bootchart
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-cgroups-agent
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-coredump
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-cryptsetup
@@ -367,6 +392,12 @@ fi
 %exclude %{_mandir}/man1/systemctl.1*
 %exclude %{_mandir}/man5/tmpfiles.d.5*
 %exclude %{_mandir}/man8/systemd-tmpfiles.8*
+
+# gatewayd
+%{_datadir}/systemd/gatewayd
+%{_prefix}/lib/systemd/system/systemd-journal-gatewayd.service
+%{_prefix}/lib/systemd/system/systemd-journal-gatewayd.socket
+%{_prefix}/lib/systemd/systemd-journal-gatewayd
 
 %files units
 %defattr(644,root,root,755)
@@ -614,6 +645,8 @@ fi
 %attr(755,root,root) %{_libdir}/libsystemd-journal.so.*.*.*
 %attr(755,root,root) %{_libdir}/libsystemd-login.so.*.*.*
 
+%attr(755,root,root) %{_libdir}/libnss_myhostname.so.2
+
 %files devel
 %defattr(644,root,root,755)
 %attr(755,root,root) %{_libdir}/libsystemd-*.so
@@ -676,6 +709,7 @@ fi
 %{_prefix}/lib/udev/rules.d/75-tty-description.rules
 %{_prefix}/lib/udev/rules.d/78-sound-card.rules
 %{_prefix}/lib/udev/rules.d/80-drivers.rules
+%{_prefix}/lib/udev/rules.d/80-net-name-slot.rules
 %{_prefix}/lib/udev/rules.d/95-keyboard-force-release.rules
 %{_prefix}/lib/udev/rules.d/95-keymap.rules
 %{_prefix}/lib/udev/rules.d/95-udev-late.rules
@@ -683,6 +717,7 @@ fi
 # hwdb
 %{_prefix}/lib/udev/hwdb.d/20-OUI.hwdb
 %{_prefix}/lib/udev/hwdb.d/20-acpi-vendor.hwdb
+%{_prefix}/lib/udev/hwdb.d/20-bluetooth-vendor-product.hwdb
 %{_prefix}/lib/udev/hwdb.d/20-pci-classes.hwdb
 %{_prefix}/lib/udev/hwdb.d/20-pci-vendor-product.hwdb
 %{_prefix}/lib/udev/hwdb.d/20-usb-classes.hwdb
