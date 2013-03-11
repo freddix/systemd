@@ -7,13 +7,13 @@
 #
 Summary:	A System and Service Manager
 Name:		systemd
-Version:	197
-Release:	3
+Version:	198
+Release:	1
 Epoch:		1
 License:	GPL v2+
 Group:		Base
 Source0:	http://www.freedesktop.org/software/systemd/%{name}-%{version}.tar.xz
-# Source0-md5:	56a860dceadfafe59f40141eb5223743
+# Source0-md5:	26a75e2a310f8c1c1ea9ec26ddb171c5
 Source10:	00-keyboard.conf
 Source11:	%{name}-loop.conf
 Source12:	%{name}-sysctl.conf
@@ -25,7 +25,6 @@ Source23:	%{name}-stop-user-sessions.service
 Source30:	udev-65-permissions.rules
 #
 Patch0:		%{name}-localectl-lib64.patch
-Patch1:		0001-dbus-fix-serialization-of-calendar-timers.patch
 URL:		http://www.freedesktop.org/wiki/Software/systemd
 BuildRequires:	autoconf
 BuildRequires:	automake
@@ -160,7 +159,6 @@ udev API documentation.
 %if %{_lib} == "lib64"
 %patch0 -p1
 %endif
-%patch1 -p1
 
 %build
 %{__aclocal} -I m4
@@ -185,14 +183,10 @@ install -d $RPM_BUILD_ROOT{/etc/{udev/rules.d,X11/xorg.conf.d},%{_sbindir}}
 %{__make} -j1 install \
 	DESTDIR=$RPM_BUILD_ROOT
 
-%{__rm} -r $RPM_BUILD_ROOT%{_docdir}/%{name}
-
-rm -f $RPM_BUILD_ROOT%{_libdir}/{*/,}*.la
-
 # We create all wants links manually at installation time to make sure
 # they are not owned and hence overriden by rpm after the used deleted
 # them.
-rm -r $RPM_BUILD_ROOT%{_sysconfdir}/systemd/system/*.target.wants
+%{__rm} -r $RPM_BUILD_ROOT%{_sysconfdir}/systemd/system/*.target.wants
 
 touch $RPM_BUILD_ROOT%{_sysconfdir}/machine-id
 touch $RPM_BUILD_ROOT%{_sysconfdir}/machine-info
@@ -217,7 +211,10 @@ d /run/console 0755 root root
 
 EOF
 
-rm -f $RPM_BUILD_ROOT%{py_sitedir}/systemd/*.{la,py}
+%{__rm} $RPM_BUILD_ROOT%{py_sitedir}/systemd/*.{la,py}
+%{__rm} -f $RPM_BUILD_ROOT%{_libdir}/{*/,}*.la
+%{__rm} -r $RPM_BUILD_ROOT%{_datadir}/bash-completion
+%{__rm} -r $RPM_BUILD_ROOT%{_docdir}/%{name}
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -278,8 +275,10 @@ fi
 %files
 %defattr(644,root,root,755)
 %doc DISTRO_PORTING README TODO
+%attr(755,root,root) %{_bindir}/bootctl
 %attr(755,root,root) %{_bindir}/hostnamectl
 %attr(755,root,root) %{_bindir}/journalctl
+%attr(755,root,root) %{_bindir}/kernel-install
 %attr(755,root,root) %{_bindir}/localectl
 %attr(755,root,root) %{_bindir}/loginctl
 %attr(755,root,root) %{_bindir}/systemd
@@ -302,8 +301,8 @@ fi
 
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-ac-power
+%attr(755,root,root) %{_prefix}/lib/systemd/systemd-activate
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-binfmt
-%attr(755,root,root) %{_prefix}/lib/systemd/systemd-bootchart
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-cgroups-agent
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-coredump
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-cryptsetup
@@ -332,7 +331,11 @@ fi
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-user-sessions
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-vconsole-setup
 
+%attr(755,root,root) %{_prefix}/lib/systemd/systemd-bootchart
+%config(noreplace) %verify(not md5 mtime size) /etc/systemd/bootchart.conf
+
 %attr(755,root,root) %{_prefix}/lib/systemd/system-generators/systemd-cryptsetup-generator
+%attr(755,root,root) %{_prefix}/lib/systemd/system-generators/systemd-efi-boot-generator
 %attr(755,root,root) %{_prefix}/lib/systemd/system-generators/systemd-fstab-generator
 %attr(755,root,root) %{_prefix}/lib/systemd/system-generators/systemd-getty-generator
 %attr(755,root,root) %{_prefix}/lib/systemd/system-generators/systemd-system-update-generator
@@ -438,8 +441,6 @@ fi
 %{_prefix}/lib/systemd/system/basic.target
 %{_prefix}/lib/systemd/system/basic.target.wants/systemd-tmpfiles-clean.timer
 
-%dir %{_prefix}/lib/systemd/system/graphical.target.wants
-
 %dir %{_prefix}/lib/systemd/system/local-fs.target.wants
 %{_prefix}/lib/systemd/system/local-fs-pre.target
 %{_prefix}/lib/systemd/system/local-fs.target
@@ -453,24 +454,6 @@ fi
 %{_prefix}/lib/systemd/system/multi-user.target.wants/systemd-ask-password-wall.path
 %{_prefix}/lib/systemd/system/multi-user.target.wants/systemd-logind.service
 %{_prefix}/lib/systemd/system/multi-user.target.wants/systemd-user-sessions.service
-
-%dir %{_prefix}/lib/systemd/system/runlevel1.target.wants
-%dir %{_prefix}/lib/systemd/system/runlevel2.target.wants
-%dir %{_prefix}/lib/systemd/system/runlevel3.target.wants
-%dir %{_prefix}/lib/systemd/system/runlevel4.target.wants
-%dir %{_prefix}/lib/systemd/system/runlevel5.target.wants
-%{_prefix}/lib/systemd/system/runlevel1.target.wants/systemd-update-utmp-runlevel.service
-%{_prefix}/lib/systemd/system/runlevel2.target.wants/systemd-update-utmp-runlevel.service
-%{_prefix}/lib/systemd/system/runlevel3.target.wants/systemd-update-utmp-runlevel.service
-%{_prefix}/lib/systemd/system/runlevel4.target.wants/systemd-update-utmp-runlevel.service
-%{_prefix}/lib/systemd/system/runlevel5.target.wants/systemd-update-utmp-runlevel.service
-%{_prefix}/lib/systemd/system/runlevel0.target
-%{_prefix}/lib/systemd/system/runlevel1.target
-%{_prefix}/lib/systemd/system/runlevel2.target
-%{_prefix}/lib/systemd/system/runlevel3.target
-%{_prefix}/lib/systemd/system/runlevel4.target
-%{_prefix}/lib/systemd/system/runlevel5.target
-%{_prefix}/lib/systemd/system/runlevel6.target
 
 %dir %{_prefix}/lib/systemd/system/shutdown.target.wants
 %{_prefix}/lib/systemd/system/shutdown.target
@@ -517,7 +500,6 @@ fi
 %{_prefix}/lib/systemd/system/halt.target
 %{_prefix}/lib/systemd/system/hibernate.target
 %{_prefix}/lib/systemd/system/kexec.target
-%{_prefix}/lib/systemd/system/mail-transfer-agent.target
 %{_prefix}/lib/systemd/system/network.target
 %{_prefix}/lib/systemd/system/nss-lookup.target
 %{_prefix}/lib/systemd/system/nss-user-lookup.target
@@ -534,7 +516,6 @@ fi
 %{_prefix}/lib/systemd/system/sound.target
 %{_prefix}/lib/systemd/system/suspend.target
 %{_prefix}/lib/systemd/system/swap.target
-%{_prefix}/lib/systemd/system/syslog.target
 %{_prefix}/lib/systemd/system/system-update.target
 %{_prefix}/lib/systemd/system/time-sync.target
 %{_prefix}/lib/systemd/system/umount.target
@@ -633,6 +614,15 @@ fi
 %{_mandir}/man1/systemctl.1*
 %{_mandir}/man5/tmpfiles.d.5*
 %{_mandir}/man8/systemd-tmpfiles.8*
+
+%if 0
+# there is no initrd in Freddix
+%attr(755,root,root) %{_prefix}/lib/systemd/system/initrd-cleanup.service
+%attr(755,root,root) %{_prefix}/lib/systemd/system/initrd-parse-etc.service
+%attr(755,root,root) %{_prefix}/lib/systemd/system/initrd-switch-root.service
+%attr(755,root,root) %{_prefix}/lib/systemd/system/initrd-switch-root.target
+%attr(755,root,root) %{_prefix}/lib/systemd/system/initrd-udevadm-cleanup-db.service
+%endif
 
 %files libs
 %defattr(644,root,root,755)
