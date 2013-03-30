@@ -7,13 +7,13 @@
 #
 Summary:	A System and Service Manager
 Name:		systemd
-Version:	198
+Version:	200
 Release:	1
 Epoch:		1
 License:	GPL v2+
 Group:		Base
 Source0:	http://www.freedesktop.org/software/systemd/%{name}-%{version}.tar.xz
-# Source0-md5:	26a75e2a310f8c1c1ea9ec26ddb171c5
+# Source0-md5:	5584b96e55c46217dab4c1768d10a472
 Source10:	00-keyboard.conf
 Source11:	%{name}-loop.conf
 Source12:	%{name}-sysctl.conf
@@ -193,7 +193,7 @@ touch $RPM_BUILD_ROOT%{_sysconfdir}/machine-info
 
 install %{SOURCE10} $RPM_BUILD_ROOT/etc/X11/xorg.conf.d
 install %{SOURCE11} $RPM_BUILD_ROOT/usr/lib/modules-load.d/loop.conf
-install %{SOURCE12} $RPM_BUILD_ROOT/usr/lib/sysctl.d/sysctl.conf
+install %{SOURCE12} $RPM_BUILD_ROOT/usr/lib/sysctl.d/60-freddix.conf
 
 install %{SOURCE20} %{SOURCE21} $RPM_BUILD_ROOT%{_prefix}/lib/systemd/user
 install %{SOURCE22} $RPM_BUILD_ROOT%{_prefix}/lib/systemd
@@ -344,8 +344,9 @@ fi
 
 %config(noreplace) %verify(not md5 mtime size) /etc/X11/xorg.conf.d/00-keyboard.conf
 %{_prefix}/lib/modules-load.d/loop.conf
-%{_prefix}/lib/sysctl.d/sysctl.conf
-%{_prefix}/lib/sysctl.d/coredump.conf
+%{_prefix}/lib/sysctl.d/50-coredump.conf
+%{_prefix}/lib/sysctl.d/50-default.conf
+%{_prefix}/lib/sysctl.d/60-freddix.conf
 
 %ghost %config(noreplace) %{_sysconfdir}/machine-id
 %ghost %config(noreplace) %{_sysconfdir}/machine-info
@@ -437,10 +438,6 @@ fi
 %dir %{_prefix}/lib/systemd
 %dir %{_prefix}/lib/systemd/system
 
-%dir %{_prefix}/lib/systemd/system/basic.target.wants
-%{_prefix}/lib/systemd/system/basic.target
-%{_prefix}/lib/systemd/system/basic.target.wants/systemd-tmpfiles-clean.timer
-
 %dir %{_prefix}/lib/systemd/system/local-fs.target.wants
 %{_prefix}/lib/systemd/system/local-fs-pre.target
 %{_prefix}/lib/systemd/system/local-fs.target
@@ -489,6 +486,7 @@ fi
 %{_prefix}/lib/systemd/system/sysinit.target.wants/systemd-vconsole-setup.service
 
 # targets
+%{_prefix}/lib/systemd/system/basic.target
 %{_prefix}/lib/systemd/system/bluetooth.target
 %{_prefix}/lib/systemd/system/cryptsetup.target
 %{_prefix}/lib/systemd/system/ctrl-alt-del.target
@@ -499,10 +497,13 @@ fi
 %{_prefix}/lib/systemd/system/graphical.target
 %{_prefix}/lib/systemd/system/halt.target
 %{_prefix}/lib/systemd/system/hibernate.target
+%{_prefix}/lib/systemd/system/hybrid-sleep.target
 %{_prefix}/lib/systemd/system/kexec.target
+%{_prefix}/lib/systemd/system/network-online.target
 %{_prefix}/lib/systemd/system/network.target
 %{_prefix}/lib/systemd/system/nss-lookup.target
 %{_prefix}/lib/systemd/system/nss-user-lookup.target
+%{_prefix}/lib/systemd/system/paths.target
 %{_prefix}/lib/systemd/system/poweroff.target
 %{_prefix}/lib/systemd/system/printer.target
 %{_prefix}/lib/systemd/system/reboot.target
@@ -519,7 +520,6 @@ fi
 %{_prefix}/lib/systemd/system/system-update.target
 %{_prefix}/lib/systemd/system/time-sync.target
 %{_prefix}/lib/systemd/system/umount.target
-%{_prefix}/lib/systemd/system/hybrid-sleep.target
 
 # mounts
 %{_prefix}/lib/systemd/system/dev-hugepages.mount
@@ -538,6 +538,9 @@ fi
 %{_prefix}/lib/systemd/system/syslog.socket
 
 # timers
+%dir %{_prefix}/lib/systemd/system/timers.target.wants
+%{_prefix}/lib/systemd/system/timers.target
+%{_prefix}/lib/systemd/system/timers.target.wants/systemd-tmpfiles-clean.timer
 %{_prefix}/lib/systemd/system/systemd-readahead-done.timer
 %{_prefix}/lib/systemd/system/systemd-tmpfiles-clean.timer
 
@@ -605,11 +608,14 @@ fi
 %{_prefix}/lib/systemd/user/dbus.socket
 %{_prefix}/lib/systemd/user/default.target
 %{_prefix}/lib/systemd/user/exit.target
+%{_prefix}/lib/systemd/user/paths.target
 %{_prefix}/lib/systemd/user/printer.target
 %{_prefix}/lib/systemd/user/shutdown.target
+%{_prefix}/lib/systemd/user/smartcard.target
 %{_prefix}/lib/systemd/user/sockets.target
 %{_prefix}/lib/systemd/user/sound.target
 %{_prefix}/lib/systemd/user/systemd-exit.service
+%{_prefix}/lib/systemd/user/timers.target
 
 %{_mandir}/man1/systemctl.1*
 %{_mandir}/man5/tmpfiles.d.5*
@@ -709,9 +715,9 @@ fi
 %{_prefix}/lib/udev/hwdb.d/20-acpi-vendor.hwdb
 %{_prefix}/lib/udev/hwdb.d/20-bluetooth-vendor-product.hwdb
 %{_prefix}/lib/udev/hwdb.d/20-pci-classes.hwdb
-%{_prefix}/lib/udev/hwdb.d/20-pci-vendor-product.hwdb
+%{_prefix}/lib/udev/hwdb.d/20-pci-vendor-model.hwdb
 %{_prefix}/lib/udev/hwdb.d/20-usb-classes.hwdb
-%{_prefix}/lib/udev/hwdb.d/20-usb-vendor-product.hwdb
+%{_prefix}/lib/udev/hwdb.d/20-usb-vendor-model.hwdb
 
 %{_sysconfdir}/udev/udev.conf
 
