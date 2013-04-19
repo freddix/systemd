@@ -7,22 +7,17 @@
 #
 Summary:	A System and Service Manager
 Name:		systemd
-Version:	200
-Release:	1
+Version:	202
+Release:	3
 Epoch:		1
 License:	GPL v2+
 Group:		Base
 Source0:	http://www.freedesktop.org/software/systemd/%{name}-%{version}.tar.xz
-# Source0-md5:	5584b96e55c46217dab4c1768d10a472
-Source10:	00-keyboard.conf
-Source11:	%{name}-loop.conf
-Source12:	%{name}-sysctl.conf
-Source20:	dbus.service
-Source21:	dbus.socket
-Source22:	%{name}-user
-Source23:	%{name}-stop-user-sessions.service
+# Source0-md5:	3136c6912d3ee1f6d4deb16234783731
+Source10:	%{name}-loop.conf
+Source11:	%{name}-sysctl.conf
 # udev stuff
-Source30:	udev-65-permissions.rules
+Source20:	udev-65-permissions.rules
 #
 Patch0:		%{name}-localectl-lib64.patch
 URL:		http://www.freedesktop.org/wiki/Software/systemd
@@ -46,9 +41,11 @@ BuildRequires:	pkg-config
 BuildRequires:	qrencode-devel
 BuildRequires:	usbutils
 BuildRequires:	vala
+Requires(pre,postun):	pwdutils
 Requires(post,postun):	/usr/sbin/ldconfig
-Requires:       %{name}-libs = %{epoch}:%{version}-%{release}
+Requires:	%{name}-libs = %{epoch}:%{version}-%{release}
 Requires:	%{name}-units = %{epoch}:%{version}-%{release}
+Provides:	group(systemd-journal)
 Provides:	virtual(init-daemon)
 Requires:	core
 Requires:	dbus
@@ -59,6 +56,8 @@ Requires:	udev = %{epoch}:%{version}-%{release}
 Requires:	util-linux
 Obsoletes:	nss-myhostname
 BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
+
+%define		skip_post_check_so	libnss_myhostname.so.2
 
 %description
 systemd is a system and service manager for Linux, compatible with
@@ -71,8 +70,8 @@ elaborate transactional dependency-based service control logic. It can
 work as a drop-in replacement for sysvinit.
 
 %package libs
-Summary:        systemd libraries
-Group:          Libraries
+Summary:	systemd libraries
+Group:		Libraries
 Requires(post,postun):	/usr/sbin/ldconfig
 Requires(post,preun):	sed
 
@@ -80,9 +79,9 @@ Requires(post,preun):	sed
 systemd libraries.
 
 %package devel
-Summary:        Header files for systemd libraries
-Group:          Development/Libraries
-Requires:       %{name}-libs = %{epoch}:%{version}-%{release}
+Summary:	Header files for systemd libraries
+Group:		Development/Libraries
+Requires:	%{name}-libs = %{epoch}:%{version}-%{release}
 
 %description devel
 Header files for systemd libraries.
@@ -178,7 +177,7 @@ udev API documentation.
 
 %install
 rm -rf $RPM_BUILD_ROOT
-install -d $RPM_BUILD_ROOT{/etc/{udev/rules.d,X11/xorg.conf.d},%{_sbindir}}
+install -d $RPM_BUILD_ROOT/etc/{udev/rules.d,X11/xorg.conf.d}
 
 %{__make} -j1 install \
 	DESTDIR=$RPM_BUILD_ROOT
@@ -188,36 +187,38 @@ install -d $RPM_BUILD_ROOT{/etc/{udev/rules.d,X11/xorg.conf.d},%{_sbindir}}
 # them.
 %{__rm} -r $RPM_BUILD_ROOT%{_sysconfdir}/systemd/system/*.target.wants
 
-touch $RPM_BUILD_ROOT%{_sysconfdir}/machine-id
-touch $RPM_BUILD_ROOT%{_sysconfdir}/machine-info
-
-install %{SOURCE10} $RPM_BUILD_ROOT/etc/X11/xorg.conf.d
-install %{SOURCE11} $RPM_BUILD_ROOT/usr/lib/modules-load.d/loop.conf
-install %{SOURCE12} $RPM_BUILD_ROOT/usr/lib/sysctl.d/60-freddix.conf
-
-install %{SOURCE20} %{SOURCE21} $RPM_BUILD_ROOT%{_prefix}/lib/systemd/user
-install %{SOURCE22} $RPM_BUILD_ROOT%{_prefix}/lib/systemd
-install %{SOURCE23} $RPM_BUILD_ROOT%{_prefix}/lib/systemd/system
-ln -s ../systemd-stop-user-sessions.service \
-	$RPM_BUILD_ROOT/usr/lib/systemd/system/shutdown.target.wants/systemd-stop-user-sessions.service
-
-install %{SOURCE30} $RPM_BUILD_ROOT%{_prefix}/lib/udev/rules.d/65-permissions.rules
-
-ln -s %{_prefix}/lib/systemd/systemd $RPM_BUILD_ROOT%{_sbindir}/init
-ln -s %{_prefix}/lib/systemd/systemd $RPM_BUILD_ROOT%{_bindir}/systemd
-
-cat > $RPM_BUILD_ROOT%{systemdtmpfilesdir}/console.conf <<EOF
-d /run/console 0755 root root
-
-EOF
-
 %{__rm} $RPM_BUILD_ROOT%{py_sitedir}/systemd/*.{la,py}
 %{__rm} -f $RPM_BUILD_ROOT%{_libdir}/{*/,}*.la
 %{__rm} -r $RPM_BUILD_ROOT%{_datadir}/bash-completion
 %{__rm} -r $RPM_BUILD_ROOT%{_docdir}/%{name}
 
+install -d $RPM_BUILD_ROOT%{_prefix}/lib/systemd/system/basic.target.wants
+install -d $RPM_BUILD_ROOT%{_prefix}/lib/systemd/system/dbus.target.wants
+install -d $RPM_BUILD_ROOT%{_prefix}/lib/systemd/system/default.target.wants
+install -d $RPM_BUILD_ROOT%{_prefix}/lib/systemd/system-preset
+install -d $RPM_BUILD_ROOT%{_prefix}/lib/systemd/user-preset
+install -d $RPM_BUILD_ROOT/var/lib/systemd/coredump
+install -d $RPM_BUILD_ROOT/var/lib/systemd/catalog
+install -d $RPM_BUILD_ROOT/var/log/journal
+touch $RPM_BUILD_ROOT/var/lib/systemd/catalog/database
+touch $RPM_BUILD_ROOT%{_sysconfdir}/udev/hwdb.bin
+touch $RPM_BUILD_ROOT%{_sysconfdir}/machine-id
+touch $RPM_BUILD_ROOT%{_sysconfdir}/machine-info
+touch $RPM_BUILD_ROOT/etc/X11/xorg.conf.d/00-keyboard.conf
+
+install %{SOURCE10} $RPM_BUILD_ROOT/usr/lib/modules-load.d/loop.conf
+install %{SOURCE11} $RPM_BUILD_ROOT/usr/lib/sysctl.d/60-freddix.conf
+
+install %{SOURCE20} $RPM_BUILD_ROOT%{_prefix}/lib/udev/rules.d/65-permissions.rules
+
+ln -s %{_prefix}/lib/systemd/systemd $RPM_BUILD_ROOT%{_bindir}/systemd
+
 %clean
 rm -rf $RPM_BUILD_ROOT
+
+%pre
+%groupadd -g 112 -r -f systemd-journal
+systemctl stop systemd-udevd-control.socket systemd-udevd-kernel.socket systemd-udevd.service >/dev/null 2>&1 || :
 
 %post
 systemd-machine-id-setup > /dev/null 2>&1 || :
@@ -229,14 +230,22 @@ journalctl --update-catalog > /dev/null 2>&1 || :
 
 %post units
 if [ "$1" = "1" ] ; then
-    /usr/bin/systemctl enable getty@.service
+    /usr/bin/systemctl enable \
+    	getty@.service \
+	remote-fs.target \
+	systemd-readahead-replay.service \
+	systemd-readahead-collect.service >/dev/null 2>&1 || :
     ln -sf /usr/lib/systemd/system/multi-user.target \
     	/etc/systemd/system/default.target
 fi
 
 %preun units
 if [ "$1" = "0" ]; then
-    systemctl disable getty@.service
+    systemctl disable \
+    	getty@.service \
+	remote-fs.target \
+	systemd-readahead-replay.service \
+	systemd-readahead-collect.service >/dev/null 2>&1 || :
     rm -f %{_sysconfdir}/systemd/system/default.target > /dev/null 2>&1 || :
 fi
 
@@ -244,6 +253,10 @@ fi
 if [ "$1" -ge "1" ] ; then
 	systemctl daemon-reload > /dev/null 2>&1 || :
 	systemctl try-restart systemd-logind.service >/dev/null 2>&1 || :
+fi
+if [ "$1" = "0" ]; then
+    %userremove systemd-journal
+    %groupremove systemd-journal
 fi
 
 %post libs
@@ -297,7 +310,6 @@ fi
 %attr(755,root,root) %{_bindir}/systemd-stdio-bridge
 %attr(755,root,root) %{_bindir}/systemd-tty-ask-password-agent
 %attr(755,root,root) %{_bindir}/timedatectl
-%attr(755,root,root) %{_sbindir}/init
 
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-ac-power
@@ -327,7 +339,6 @@ fi
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-timestamp
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-udevd
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-update-utmp
-%attr(755,root,root) %{_prefix}/lib/systemd/systemd-user
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-user-sessions
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-vconsole-setup
 
@@ -379,7 +390,6 @@ fi
 %{_sysconfdir}/dbus-1/system.d/org.freedesktop.timedate1.conf
 %{_sysconfdir}/dbus-1/system.d/org.freedesktop.login1.conf
 
-%{_prefix}/lib/tmpfiles.d/console.conf
 %{_prefix}/lib/tmpfiles.d/systemd.conf
 %{_prefix}/lib/tmpfiles.d/tmp.conf
 %{_prefix}/lib/tmpfiles.d/x11.conf
@@ -397,11 +407,17 @@ fi
 %exclude %{_mandir}/man5/tmpfiles.d.5*
 %exclude %{_mandir}/man8/systemd-tmpfiles.8*
 
+%dir /var/lib/systemd
+%dir /var/lib/systemd/coredump
+%dir /var/lib/systemd/catalog
+%dir /var/log/journal
+%ghost /var/lib/systemd/catalog/database
+
 # gatewayd
-%{_datadir}/systemd/gatewayd
+%attr(755,root,root) %{_prefix}/lib/systemd/systemd-journal-gatewayd
 %{_prefix}/lib/systemd/system/systemd-journal-gatewayd.service
 %{_prefix}/lib/systemd/system/systemd-journal-gatewayd.socket
-%{_prefix}/lib/systemd/systemd-journal-gatewayd
+%{_datadir}/systemd/gatewayd
 
 %files units
 %defattr(644,root,root,755)
@@ -418,9 +434,11 @@ fi
 
 %dir %{_prefix}/lib/systemd/ntp-units.d
 %dir %{_prefix}/lib/systemd/system-generators
+%dir %{_prefix}/lib/systemd/system-preset
 %dir %{_prefix}/lib/systemd/system-shutdown
 %dir %{_prefix}/lib/systemd/system-sleep
 %dir %{_prefix}/lib/systemd/user-generators
+%dir %{_prefix}/lib/systemd/user-preset
 
 %dir %{_sysconfdir}/binfmt.d
 %dir %{_sysconfdir}/modules-load.d
@@ -438,33 +456,36 @@ fi
 %dir %{_prefix}/lib/systemd
 %dir %{_prefix}/lib/systemd/system
 
+%dir %{_prefix}/lib/systemd/system/basic.target.wants
+%dir %{_prefix}/lib/systemd/system/dbus.target.wants
+%dir %{_prefix}/lib/systemd/system/default.target.wants
 %dir %{_prefix}/lib/systemd/system/local-fs.target.wants
+%dir %{_prefix}/lib/systemd/system/multi-user.target.wants
+%dir %{_prefix}/lib/systemd/system/shutdown.target.wants
+%dir %{_prefix}/lib/systemd/system/sockets.target.wants
+%dir %{_prefix}/lib/systemd/system/sysinit.target.wants
+
 %{_prefix}/lib/systemd/system/local-fs-pre.target
 %{_prefix}/lib/systemd/system/local-fs.target
 %{_prefix}/lib/systemd/system/local-fs.target.wants/systemd-fsck-root.service
 %{_prefix}/lib/systemd/system/local-fs.target.wants/systemd-remount-fs.service
 %{_prefix}/lib/systemd/system/local-fs.target.wants/tmp.mount
 
-%dir %{_prefix}/lib/systemd/system/multi-user.target.wants
 %{_prefix}/lib/systemd/system/multi-user.target
 %{_prefix}/lib/systemd/system/multi-user.target.wants/getty.target
 %{_prefix}/lib/systemd/system/multi-user.target.wants/systemd-ask-password-wall.path
 %{_prefix}/lib/systemd/system/multi-user.target.wants/systemd-logind.service
 %{_prefix}/lib/systemd/system/multi-user.target.wants/systemd-user-sessions.service
 
-%dir %{_prefix}/lib/systemd/system/shutdown.target.wants
 %{_prefix}/lib/systemd/system/shutdown.target
 %{_prefix}/lib/systemd/system/shutdown.target.wants/systemd-random-seed-save.service
-%{_prefix}/lib/systemd/system/shutdown.target.wants/systemd-stop-user-sessions.service
 %{_prefix}/lib/systemd/system/shutdown.target.wants/systemd-update-utmp-shutdown.service
 
-%dir %{_prefix}/lib/systemd/system/sockets.target.wants
 %{_prefix}/lib/systemd/system/sockets.target
 %{_prefix}/lib/systemd/system/sockets.target.wants/systemd-initctl.socket
 %{_prefix}/lib/systemd/system/sockets.target.wants/systemd-journald.socket
 %{_prefix}/lib/systemd/system/sockets.target.wants/systemd-shutdownd.socket
 
-%dir %{_prefix}/lib/systemd/system/sysinit.target.wants
 %{_prefix}/lib/systemd/system/sysinit.target
 %{_prefix}/lib/systemd/system/sysinit.target.wants/cryptsetup.target
 %{_prefix}/lib/systemd/system/sysinit.target.wants/dev-hugepages.mount
@@ -484,6 +505,7 @@ fi
 %{_prefix}/lib/systemd/system/sysinit.target.wants/systemd-udev-trigger.service
 %{_prefix}/lib/systemd/system/sysinit.target.wants/systemd-udevd.service
 %{_prefix}/lib/systemd/system/sysinit.target.wants/systemd-vconsole-setup.service
+%{_prefix}/lib/systemd/system/sysinit.target.wants/systemd-static-nodes.service
 
 # targets
 %{_prefix}/lib/systemd/system/basic.target
@@ -589,7 +611,7 @@ fi
 %{_prefix}/lib/systemd/system/systemd-reboot.service
 %{_prefix}/lib/systemd/system/systemd-remount-fs.service
 %{_prefix}/lib/systemd/system/systemd-shutdownd.service
-%{_prefix}/lib/systemd/system/systemd-stop-user-sessions.service
+%{_prefix}/lib/systemd/system/systemd-static-nodes.service
 %{_prefix}/lib/systemd/system/systemd-suspend.service
 %{_prefix}/lib/systemd/system/systemd-sysctl.service
 %{_prefix}/lib/systemd/system/systemd-timedated.service
@@ -604,8 +626,6 @@ fi
 # systemd --user
 %dir %{_prefix}/lib/systemd/user
 %{_prefix}/lib/systemd/user/bluetooth.target
-%{_prefix}/lib/systemd/user/dbus.service
-%{_prefix}/lib/systemd/user/dbus.socket
 %{_prefix}/lib/systemd/user/default.target
 %{_prefix}/lib/systemd/user/exit.target
 %{_prefix}/lib/systemd/user/paths.target
@@ -720,6 +740,7 @@ fi
 %{_prefix}/lib/udev/hwdb.d/20-usb-vendor-model.hwdb
 
 %{_sysconfdir}/udev/udev.conf
+%ghost %{_sysconfdir}/udev/hwdb.bin
 
 %{_prefix}/lib/udev/keymaps/*
 

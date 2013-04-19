@@ -1,4 +1,0 @@
-#!/usr/bin/sh -l
-export DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$(id -u)/dbus/user_bus_socket"
-exec /usr/lib/systemd/systemd --user $@
-
