@@ -7,13 +7,13 @@
 #
 Summary:	A System and Service Manager
 Name:		systemd
-Version:	202
-Release:	3
+Version:	203
+Release:	2
 Epoch:		1
 License:	GPL v2+
 Group:		Base
 Source0:	http://www.freedesktop.org/software/systemd/%{name}-%{version}.tar.xz
-# Source0-md5:	3136c6912d3ee1f6d4deb16234783731
+# Source0-md5:	b5a124ae8aee2b9fa357f912e87e9048
 Source10:	%{name}-loop.conf
 Source11:	%{name}-sysctl.conf
 # udev stuff
@@ -55,6 +55,7 @@ Requires:	python-pygobject3
 Requires:	udev = %{epoch}:%{version}-%{release}
 Requires:	util-linux
 Obsoletes:	nss-myhostname
+Suggests:	gummiboot
 BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
 
 %define		skip_post_check_so	libnss_myhostname.so.2
@@ -158,6 +159,10 @@ udev API documentation.
 %if %{_lib} == "lib64"
 %patch0 -p1
 %endif
+
+# define different than upstream sysrq behaviour
+%{__sed} -i "s|kernel\.sysrq.*|kernel.sysrq = 1|" \
+	sysctl.d/50-default.conf
 
 %build
 %{__aclocal} -I m4
@@ -291,7 +296,6 @@ fi
 %attr(755,root,root) %{_bindir}/bootctl
 %attr(755,root,root) %{_bindir}/hostnamectl
 %attr(755,root,root) %{_bindir}/journalctl
-%attr(755,root,root) %{_bindir}/kernel-install
 %attr(755,root,root) %{_bindir}/localectl
 %attr(755,root,root) %{_bindir}/loginctl
 %attr(755,root,root) %{_bindir}/systemd
@@ -310,6 +314,13 @@ fi
 %attr(755,root,root) %{_bindir}/systemd-stdio-bridge
 %attr(755,root,root) %{_bindir}/systemd-tty-ask-password-agent
 %attr(755,root,root) %{_bindir}/timedatectl
+
+# EFI boot helper for gummiboot
+%attr(755,root,root) %{_bindir}/kernel-install
+%dir %{_prefix}/lib/kernel/
+%dir %{_prefix}/lib/kernel/install.d/
+%{_prefix}/lib/kernel/install.d/50-depmod.install
+%{_prefix}/lib/kernel/install.d/90-loaderentry.install
 
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-ac-power
@@ -501,11 +512,11 @@ fi
 %{_prefix}/lib/systemd/system/sysinit.target.wants/systemd-modules-load.service
 %{_prefix}/lib/systemd/system/sysinit.target.wants/systemd-random-seed-load.service
 %{_prefix}/lib/systemd/system/sysinit.target.wants/systemd-sysctl.service
+%{_prefix}/lib/systemd/system/sysinit.target.wants/systemd-tmpfiles-setup-dev.service
 %{_prefix}/lib/systemd/system/sysinit.target.wants/systemd-tmpfiles-setup.service
 %{_prefix}/lib/systemd/system/sysinit.target.wants/systemd-udev-trigger.service
 %{_prefix}/lib/systemd/system/sysinit.target.wants/systemd-udevd.service
 %{_prefix}/lib/systemd/system/sysinit.target.wants/systemd-vconsole-setup.service
-%{_prefix}/lib/systemd/system/sysinit.target.wants/systemd-static-nodes.service
 
 # targets
 %{_prefix}/lib/systemd/system/basic.target
@@ -600,6 +611,7 @@ fi
 %{_prefix}/lib/systemd/system/systemd-localed.service
 %{_prefix}/lib/systemd/system/systemd-logind.service
 %{_prefix}/lib/systemd/system/systemd-modules-load.service
+%{_prefix}/lib/systemd/system/systemd-nspawn@.service
 %{_prefix}/lib/systemd/system/systemd-poweroff.service
 %{_prefix}/lib/systemd/system/systemd-quotacheck.service
 %{_prefix}/lib/systemd/system/systemd-random-seed-load.service
@@ -611,17 +623,18 @@ fi
 %{_prefix}/lib/systemd/system/systemd-reboot.service
 %{_prefix}/lib/systemd/system/systemd-remount-fs.service
 %{_prefix}/lib/systemd/system/systemd-shutdownd.service
-%{_prefix}/lib/systemd/system/systemd-static-nodes.service
 %{_prefix}/lib/systemd/system/systemd-suspend.service
 %{_prefix}/lib/systemd/system/systemd-sysctl.service
 %{_prefix}/lib/systemd/system/systemd-timedated.service
 %{_prefix}/lib/systemd/system/systemd-tmpfiles-clean.service
+%{_prefix}/lib/systemd/system/systemd-tmpfiles-setup-dev.service
 %{_prefix}/lib/systemd/system/systemd-tmpfiles-setup.service
 %{_prefix}/lib/systemd/system/systemd-update-utmp-runlevel.service
 %{_prefix}/lib/systemd/system/systemd-update-utmp-shutdown.service
 %{_prefix}/lib/systemd/system/systemd-user-sessions.service
 %{_prefix}/lib/systemd/system/systemd-vconsole-setup.service
 %{_prefix}/lib/systemd/system/user@.service
+
 
 # systemd --user
 %dir %{_prefix}/lib/systemd/user
