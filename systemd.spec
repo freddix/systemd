@@ -8,7 +8,7 @@
 Summary:	A System and Service Manager
 Name:		systemd
 Version:	203
-Release:	2
+Release:	3
 Epoch:		1
 License:	GPL v2+
 Group:		Base
@@ -51,7 +51,6 @@ Requires:	core
 Requires:	dbus
 Requires:	kbd
 Requires:	kmod
-Requires:	python-pygobject3
 Requires:	udev = %{epoch}:%{version}-%{release}
 Requires:	util-linux
 Obsoletes:	nss-myhostname
