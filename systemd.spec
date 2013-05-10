@@ -7,13 +7,13 @@
 #
 Summary:	A System and Service Manager
 Name:		systemd
-Version:	203
-Release:	3
+Version:	204
+Release:	1
 Epoch:		1
 License:	GPL v2+
 Group:		Base
 Source0:	http://www.freedesktop.org/software/systemd/%{name}-%{version}.tar.xz
-# Source0-md5:	b5a124ae8aee2b9fa357f912e87e9048
+# Source0-md5:	a07619bb19f48164fbf0761d12fd39a8
 Source10:	%{name}-loop.conf
 Source11:	%{name}-sysctl.conf
 # udev stuff
@@ -316,10 +316,10 @@ fi
 
 # EFI boot helper for gummiboot
 %attr(755,root,root) %{_bindir}/kernel-install
-%dir %{_prefix}/lib/kernel/
-%dir %{_prefix}/lib/kernel/install.d/
-%{_prefix}/lib/kernel/install.d/50-depmod.install
-%{_prefix}/lib/kernel/install.d/90-loaderentry.install
+%dir %{_prefix}/lib/kernel
+%dir %{_prefix}/lib/kernel/install.d
+%attr(755,root,root) %{_prefix}/lib/kernel/install.d/50-depmod.install
+%attr(755,root,root) %{_prefix}/lib/kernel/install.d/90-loaderentry.install
 
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-ac-power
