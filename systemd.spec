@@ -7,13 +7,13 @@
 #
 Summary:	A System and Service Manager
 Name:		systemd
-Version:	204
+Version:	205
 Release:	1
 Epoch:		1
 License:	GPL v2+
 Group:		Base
 Source0:	http://www.freedesktop.org/software/systemd/%{name}-%{version}.tar.xz
-# Source0-md5:	a07619bb19f48164fbf0761d12fd39a8
+# Source0-md5:	3afc38170371929cf6ab056bf6a52fc6
 Source10:	%{name}-loop.conf
 Source11:	%{name}-sysctl.conf
 # udev stuff
@@ -297,6 +297,7 @@ fi
 %attr(755,root,root) %{_bindir}/journalctl
 %attr(755,root,root) %{_bindir}/localectl
 %attr(755,root,root) %{_bindir}/loginctl
+%attr(755,root,root) %{_bindir}/machinectl
 %attr(755,root,root) %{_bindir}/systemd
 %attr(755,root,root) %{_bindir}/systemd-analyze
 %attr(755,root,root) %{_bindir}/systemd-ask-password
@@ -310,6 +311,7 @@ fi
 %attr(755,root,root) %{_bindir}/systemd-machine-id-setup
 %attr(755,root,root) %{_bindir}/systemd-notify
 %attr(755,root,root) %{_bindir}/systemd-nspawn
+%attr(755,root,root) %{_bindir}/systemd-run
 %attr(755,root,root) %{_bindir}/systemd-stdio-bridge
 %attr(755,root,root) %{_bindir}/systemd-tty-ask-password-agent
 %attr(755,root,root) %{_bindir}/timedatectl
@@ -334,6 +336,7 @@ fi
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-journald
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-localed
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-logind
+%attr(755,root,root) %{_prefix}/lib/systemd/systemd-machined
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-modules-load
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-multi-seat-x
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-quotacheck
@@ -385,6 +388,7 @@ fi
 %{_datadir}/dbus-1/system-services/org.freedesktop.hostname1.service
 %{_datadir}/dbus-1/system-services/org.freedesktop.locale1.service
 %{_datadir}/dbus-1/system-services/org.freedesktop.login1.service
+%{_datadir}/dbus-1/system-services/org.freedesktop.machine1.service
 %{_datadir}/dbus-1/system-services/org.freedesktop.systemd1.service
 %{_datadir}/dbus-1/system-services/org.freedesktop.timedate1.service
 
@@ -396,9 +400,10 @@ fi
 
 %{_sysconfdir}/dbus-1/system.d/org.freedesktop.hostname1.conf
 %{_sysconfdir}/dbus-1/system.d/org.freedesktop.locale1.conf
+%{_sysconfdir}/dbus-1/system.d/org.freedesktop.login1.conf
+%{_sysconfdir}/dbus-1/system.d/org.freedesktop.machine1.conf
 %{_sysconfdir}/dbus-1/system.d/org.freedesktop.systemd1.conf
 %{_sysconfdir}/dbus-1/system.d/org.freedesktop.timedate1.conf
-%{_sysconfdir}/dbus-1/system.d/org.freedesktop.login1.conf
 
 %{_prefix}/lib/tmpfiles.d/systemd.conf
 %{_prefix}/lib/tmpfiles.d/tmp.conf
@@ -471,7 +476,6 @@ fi
 %dir %{_prefix}/lib/systemd/system/default.target.wants
 %dir %{_prefix}/lib/systemd/system/local-fs.target.wants
 %dir %{_prefix}/lib/systemd/system/multi-user.target.wants
-%dir %{_prefix}/lib/systemd/system/shutdown.target.wants
 %dir %{_prefix}/lib/systemd/system/sockets.target.wants
 %dir %{_prefix}/lib/systemd/system/sysinit.target.wants
 
@@ -488,8 +492,6 @@ fi
 %{_prefix}/lib/systemd/system/multi-user.target.wants/systemd-user-sessions.service
 
 %{_prefix}/lib/systemd/system/shutdown.target
-%{_prefix}/lib/systemd/system/shutdown.target.wants/systemd-random-seed-save.service
-%{_prefix}/lib/systemd/system/shutdown.target.wants/systemd-update-utmp-shutdown.service
 
 %{_prefix}/lib/systemd/system/sockets.target
 %{_prefix}/lib/systemd/system/sockets.target.wants/systemd-initctl.socket
@@ -509,13 +511,15 @@ fi
 %{_prefix}/lib/systemd/system/sysinit.target.wants/systemd-journal-flush.service
 %{_prefix}/lib/systemd/system/sysinit.target.wants/systemd-journald.service
 %{_prefix}/lib/systemd/system/sysinit.target.wants/systemd-modules-load.service
-%{_prefix}/lib/systemd/system/sysinit.target.wants/systemd-random-seed-load.service
+%{_prefix}/lib/systemd/system/sysinit.target.wants/systemd-random-seed.service
 %{_prefix}/lib/systemd/system/sysinit.target.wants/systemd-sysctl.service
 %{_prefix}/lib/systemd/system/sysinit.target.wants/systemd-tmpfiles-setup-dev.service
 %{_prefix}/lib/systemd/system/sysinit.target.wants/systemd-tmpfiles-setup.service
 %{_prefix}/lib/systemd/system/sysinit.target.wants/systemd-udev-trigger.service
 %{_prefix}/lib/systemd/system/sysinit.target.wants/systemd-udevd.service
+%{_prefix}/lib/systemd/system/sysinit.target.wants/systemd-update-utmp.service
 %{_prefix}/lib/systemd/system/sysinit.target.wants/systemd-vconsole-setup.service
+
 
 # targets
 %{_prefix}/lib/systemd/system/basic.target
@@ -545,6 +549,7 @@ fi
 %{_prefix}/lib/systemd/system/rpcbind.target
 %{_prefix}/lib/systemd/system/sigpwr.target
 %{_prefix}/lib/systemd/system/sleep.target
+%{_prefix}/lib/systemd/system/slices.target
 %{_prefix}/lib/systemd/system/smartcard.target
 %{_prefix}/lib/systemd/system/sound.target
 %{_prefix}/lib/systemd/system/suspend.target
@@ -587,6 +592,7 @@ fi
 %{_prefix}/lib/systemd/system/dbus-org.freedesktop.hostname1.service
 %{_prefix}/lib/systemd/system/dbus-org.freedesktop.locale1.service
 %{_prefix}/lib/systemd/system/dbus-org.freedesktop.login1.service
+%{_prefix}/lib/systemd/system/dbus-org.freedesktop.machine1.service
 %{_prefix}/lib/systemd/system/dbus-org.freedesktop.timedate1.service
 %{_prefix}/lib/systemd/system/debug-shell.service
 %{_prefix}/lib/systemd/system/emergency.service
@@ -609,12 +615,12 @@ fi
 %{_prefix}/lib/systemd/system/systemd-kexec.service
 %{_prefix}/lib/systemd/system/systemd-localed.service
 %{_prefix}/lib/systemd/system/systemd-logind.service
+%{_prefix}/lib/systemd/system/systemd-machined.service
 %{_prefix}/lib/systemd/system/systemd-modules-load.service
 %{_prefix}/lib/systemd/system/systemd-nspawn@.service
 %{_prefix}/lib/systemd/system/systemd-poweroff.service
 %{_prefix}/lib/systemd/system/systemd-quotacheck.service
-%{_prefix}/lib/systemd/system/systemd-random-seed-load.service
-%{_prefix}/lib/systemd/system/systemd-random-seed-save.service
+%{_prefix}/lib/systemd/system/systemd-random-seed.service
 %{_prefix}/lib/systemd/system/systemd-readahead-collect.service
 %{_prefix}/lib/systemd/system/systemd-readahead-done.service
 %{_prefix}/lib/systemd/system/systemd-readahead-drop.service
@@ -629,11 +635,16 @@ fi
 %{_prefix}/lib/systemd/system/systemd-tmpfiles-setup-dev.service
 %{_prefix}/lib/systemd/system/systemd-tmpfiles-setup.service
 %{_prefix}/lib/systemd/system/systemd-update-utmp-runlevel.service
-%{_prefix}/lib/systemd/system/systemd-update-utmp-shutdown.service
+%{_prefix}/lib/systemd/system/systemd-update-utmp.service
 %{_prefix}/lib/systemd/system/systemd-user-sessions.service
 %{_prefix}/lib/systemd/system/systemd-vconsole-setup.service
 %{_prefix}/lib/systemd/system/user@.service
 
+# slices
+%{_prefix}/lib/systemd/system/-.slice
+%{_prefix}/lib/systemd/system/machine.slice
+%{_prefix}/lib/systemd/system/system.slice
+%{_prefix}/lib/systemd/system/user.slice
 
 # systemd --user
 %dir %{_prefix}/lib/systemd/user
