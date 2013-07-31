@@ -7,13 +7,13 @@
 #
 Summary:	A System and Service Manager
 Name:		systemd
-Version:	205
+Version:	206
 Release:	1
 Epoch:		1
 License:	GPL v2+
 Group:		Base
 Source0:	http://www.freedesktop.org/software/systemd/%{name}-%{version}.tar.xz
-# Source0-md5:	3afc38170371929cf6ab056bf6a52fc6
+# Source0-md5:	89e36f2d3ba963020b72738549954cbc
 Source10:	%{name}-loop.conf
 Source11:	%{name}-sysctl.conf
 # udev stuff
@@ -502,6 +502,7 @@ fi
 %{_prefix}/lib/systemd/system/sysinit.target.wants/cryptsetup.target
 %{_prefix}/lib/systemd/system/sysinit.target.wants/dev-hugepages.mount
 %{_prefix}/lib/systemd/system/sysinit.target.wants/dev-mqueue.mount
+%{_prefix}/lib/systemd/system/sysinit.target.wants/kmod-static-nodes.service
 %{_prefix}/lib/systemd/system/sysinit.target.wants/proc-sys-fs-binfmt_misc.automount
 %{_prefix}/lib/systemd/system/sysinit.target.wants/sys-fs-fuse-connections.mount
 %{_prefix}/lib/systemd/system/sysinit.target.wants/sys-kernel-config.mount
@@ -519,7 +520,6 @@ fi
 %{_prefix}/lib/systemd/system/sysinit.target.wants/systemd-udevd.service
 %{_prefix}/lib/systemd/system/sysinit.target.wants/systemd-update-utmp.service
 %{_prefix}/lib/systemd/system/sysinit.target.wants/systemd-vconsole-setup.service
-
 
 # targets
 %{_prefix}/lib/systemd/system/basic.target
@@ -597,6 +597,7 @@ fi
 %{_prefix}/lib/systemd/system/debug-shell.service
 %{_prefix}/lib/systemd/system/emergency.service
 %{_prefix}/lib/systemd/system/getty@.service
+%{_prefix}/lib/systemd/system/kmod-static-nodes.service
 %{_prefix}/lib/systemd/system/quotaon.service
 %{_prefix}/lib/systemd/system/rescue.service
 %{_prefix}/lib/systemd/system/serial-getty@.service
@@ -711,7 +712,6 @@ fi
 %dir %{_sysconfdir}/udev/rules.d
 %dir %{_prefix}/lib/udev
 %dir %{_prefix}/lib/udev/hwdb.d
-%dir %{_prefix}/lib/udev/keymaps
 %dir %{_prefix}/lib/udev/rules.d
 
 %attr(755,root,root) %{_bindir}/udevadm
@@ -719,9 +719,6 @@ fi
 
 %attr(755,root,root) %{_prefix}/lib/udev/accelerometer
 %attr(755,root,root) %{_prefix}/lib/udev/collect
-%attr(755,root,root) %{_prefix}/lib/udev/findkeyboards
-%attr(755,root,root) %{_prefix}/lib/udev/keyboard-force-release.sh
-%attr(755,root,root) %{_prefix}/lib/udev/keymap
 %attr(755,root,root) %{_prefix}/lib/udev/mtd_probe
 
 %attr(755,root,root) %{_prefix}/lib/udev/ata_id
@@ -733,6 +730,7 @@ fi
 %{_prefix}/lib/udev/rules.d/42-usb-hid-pm.rules
 %{_prefix}/lib/udev/rules.d/50-udev-default.rules
 %{_prefix}/lib/udev/rules.d/60-cdrom_id.rules
+%{_prefix}/lib/udev/rules.d/60-keyboard.rules
 %{_prefix}/lib/udev/rules.d/60-persistent-alsa.rules
 %{_prefix}/lib/udev/rules.d/60-persistent-input.rules
 %{_prefix}/lib/udev/rules.d/60-persistent-serial.rules
@@ -749,8 +747,6 @@ fi
 %{_prefix}/lib/udev/rules.d/78-sound-card.rules
 %{_prefix}/lib/udev/rules.d/80-drivers.rules
 %{_prefix}/lib/udev/rules.d/80-net-name-slot.rules
-%{_prefix}/lib/udev/rules.d/95-keyboard-force-release.rules
-%{_prefix}/lib/udev/rules.d/95-keymap.rules
 %{_prefix}/lib/udev/rules.d/95-udev-late.rules
 
 # hwdb
@@ -761,11 +757,10 @@ fi
 %{_prefix}/lib/udev/hwdb.d/20-pci-vendor-model.hwdb
 %{_prefix}/lib/udev/hwdb.d/20-usb-classes.hwdb
 %{_prefix}/lib/udev/hwdb.d/20-usb-vendor-model.hwdb
+%{_prefix}/lib/udev/hwdb.d/60-keyboard.hwdb
 
 %{_sysconfdir}/udev/udev.conf
 %ghost %{_sysconfdir}/udev/hwdb.bin
-
-%{_prefix}/lib/udev/keymaps/*
 
 # systemd stuff
 %{_prefix}/lib/systemd/system/sockets.target.wants/systemd-udevd-control.socket
