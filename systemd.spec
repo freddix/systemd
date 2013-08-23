@@ -8,7 +8,7 @@
 Summary:	A System and Service Manager
 Name:		systemd
 Version:	206
-Release:	3
+Release:	4
 Epoch:		1
 License:	GPL v2+
 Group:		Base
@@ -217,6 +217,10 @@ install %{SOURCE20} $RPM_BUILD_ROOT%{_prefix}/lib/udev/rules.d/65-permissions.ru
 
 ln -s %{_prefix}/lib/systemd/systemd $RPM_BUILD_ROOT%{_bindir}/systemd
 
+ln -s systemctl $RPM_BUILD_ROOT%{_bindir}/halt
+ln -s systemctl $RPM_BUILD_ROOT%{_bindir}/poweroff
+ln -s systemctl $RPM_BUILD_ROOT%{_bindir}/reboot
+
 %clean
 rm -rf $RPM_BUILD_ROOT
 
@@ -315,6 +319,10 @@ fi
 %attr(755,root,root) %{_bindir}/systemd-stdio-bridge
 %attr(755,root,root) %{_bindir}/systemd-tty-ask-password-agent
 %attr(755,root,root) %{_bindir}/timedatectl
+
+%attr(755,root,root) %{_bindir}/halt
+%attr(755,root,root) %{_bindir}/poweroff
+%attr(755,root,root) %{_bindir}/reboot
 
 # EFI boot helper for gummiboot
 %attr(755,root,root) %{_bindir}/kernel-install
