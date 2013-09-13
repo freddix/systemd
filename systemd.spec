@@ -224,6 +224,7 @@ touch $RPM_BUILD_ROOT/etc/X11/xorg.conf.d/00-keyboard.conf
 
 install %{SOURCE1} $RPM_BUILD_ROOT/etc/pam.d/systemd-user
 install %{SOURCE2} %{SOURCE3} $RPM_BUILD_ROOT%{_prefix}/lib/systemd/user
+echo "Requires=dbus.socket" >> $RPM_BUILD_ROOT%{_prefix}/lib/systemd/user/default.target
 
 install %{SOURCE10} $RPM_BUILD_ROOT/usr/lib/modules-load.d/loop.conf
 install %{SOURCE11} $RPM_BUILD_ROOT/usr/lib/sysctl.d/60-freddix.conf
