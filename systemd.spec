@@ -7,13 +7,18 @@
 #
 Summary:	A System and Service Manager
 Name:		systemd
-Version:	206
-Release:	4
+Version:	207
+Release:	1
 Epoch:		1
 License:	GPL v2+
 Group:		Base
 Source0:	http://www.freedesktop.org/software/systemd/%{name}-%{version}.tar.xz
-# Source0-md5:	89e36f2d3ba963020b72738549954cbc
+# Source0-md5:	7799f3cc9d289b8db1c1fa56ae7ecd88
+# user session
+Source1:	%{name}-user.pamd
+Source2:	dbus.service
+Source3:	dbus.socket
+# misc
 Source10:	%{name}-loop.conf
 Source11:	%{name}-sysctl.conf
 # udev stuff
@@ -153,6 +158,14 @@ Requires:	gtk-doc-common
 %description -n udev-apidocs
 udev API documentation.
 
+%package -n zsh-completion-systemd
+Summary:	Zsh auto-complete site functions
+Group:		Documentation
+Requires:	zsh
+
+%description -n zsh-completion-systemd
+Zsh auto-complete site functions.
+
 %prep
 %setup -q
 %if %{_lib} == "lib64"
@@ -177,7 +190,6 @@ udev API documentation.
 	--with-sysvinit-path=	\
 	--with-sysvrcnd-path=
 %{__make}
-
 
 %install
 rm -rf $RPM_BUILD_ROOT
@@ -209,6 +221,9 @@ touch $RPM_BUILD_ROOT%{_sysconfdir}/udev/hwdb.bin
 touch $RPM_BUILD_ROOT%{_sysconfdir}/machine-id
 touch $RPM_BUILD_ROOT%{_sysconfdir}/machine-info
 touch $RPM_BUILD_ROOT/etc/X11/xorg.conf.d/00-keyboard.conf
+
+install %{SOURCE1} $RPM_BUILD_ROOT/etc/pam.d/systemd-user
+install %{SOURCE2} %{SOURCE3} $RPM_BUILD_ROOT%{_prefix}/lib/systemd/user
 
 install %{SOURCE10} $RPM_BUILD_ROOT/usr/lib/modules-load.d/loop.conf
 install %{SOURCE11} $RPM_BUILD_ROOT/usr/lib/sysctl.d/60-freddix.conf
@@ -334,6 +349,7 @@ fi
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-ac-power
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-activate
+%attr(755,root,root) %{_prefix}/lib/systemd/systemd-backlight
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-binfmt
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-cgroups-agent
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-coredump
@@ -357,7 +373,6 @@ fi
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-sleep
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-sysctl
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-timedated
-%attr(755,root,root) %{_prefix}/lib/systemd/systemd-timestamp
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-udevd
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-update-utmp
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-user-sessions
@@ -370,6 +385,7 @@ fi
 %attr(755,root,root) %{_prefix}/lib/systemd/system-generators/systemd-efi-boot-generator
 %attr(755,root,root) %{_prefix}/lib/systemd/system-generators/systemd-fstab-generator
 %attr(755,root,root) %{_prefix}/lib/systemd/system-generators/systemd-getty-generator
+%attr(755,root,root) %{_prefix}/lib/systemd/system-generators/systemd-gpt-auto-generator
 %attr(755,root,root) %{_prefix}/lib/systemd/system-generators/systemd-system-update-generator
 
 %attr(755,root,root) %{_libdir}/security/pam_systemd.so
@@ -611,6 +627,7 @@ fi
 %{_prefix}/lib/systemd/system/serial-getty@.service
 %{_prefix}/lib/systemd/system/systemd-ask-password-console.service
 %{_prefix}/lib/systemd/system/systemd-ask-password-wall.service
+%{_prefix}/lib/systemd/system/systemd-backlight@.service
 %{_prefix}/lib/systemd/system/systemd-binfmt.service
 %{_prefix}/lib/systemd/system/systemd-fsck-root.service
 %{_prefix}/lib/systemd/system/systemd-fsck@.service
@@ -656,7 +673,9 @@ fi
 %{_prefix}/lib/systemd/system/user.slice
 
 # systemd --user
+%attr(640,root,root) %config(noreplace) %verify(not md5 mtime size) /etc/pam.d/systemd-user
 %dir %{_prefix}/lib/systemd/user
+# targets
 %{_prefix}/lib/systemd/user/bluetooth.target
 %{_prefix}/lib/systemd/user/default.target
 %{_prefix}/lib/systemd/user/exit.target
@@ -666,8 +685,11 @@ fi
 %{_prefix}/lib/systemd/user/smartcard.target
 %{_prefix}/lib/systemd/user/sockets.target
 %{_prefix}/lib/systemd/user/sound.target
-%{_prefix}/lib/systemd/user/systemd-exit.service
 %{_prefix}/lib/systemd/user/timers.target
+# services
+%{_prefix}/lib/systemd/user/dbus.service
+%{_prefix}/lib/systemd/user/dbus.socket
+%{_prefix}/lib/systemd/user/systemd-exit.service
 
 %{_mandir}/man1/systemctl.1*
 %{_mandir}/man5/tmpfiles.d.5*
@@ -813,4 +835,8 @@ fi
 %{_gtkdocdir}/gudev
 %{_gtkdocdir}/libudev
 %endif
+
+%files -n zsh-completion-systemd
+%defattr(644,root,root,755)
+%{_datadir}/zsh/site-functions/_*
 
