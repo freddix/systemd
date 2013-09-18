@@ -8,7 +8,7 @@
 Summary:	A System and Service Manager
 Name:		systemd
 Version:	207
-Release:	1
+Release:	2
 Epoch:		1
 License:	GPL v2+
 Group:		Base
@@ -183,10 +183,12 @@ Zsh auto-complete site functions.
 %{__automake}
 %configure \
 	--disable-audit		\
+	--disable-ima		\
 	--disable-selinux	\
 	--disable-silent-rules	\
 	--disable-static	\
 	--disable-tcpwrap	\
+	--with-firmware-path=/usr/lib/firmware	\
 	--with-sysvinit-path=	\
 	--with-sysvrcnd-path=
 %{__make}
@@ -434,6 +436,7 @@ fi
 %{_prefix}/lib/tmpfiles.d/tmp.conf
 %{_prefix}/lib/tmpfiles.d/x11.conf
 
+%{_prefix}/lib/udev/rules.d/50-firmware.rules
 %{_prefix}/lib/udev/rules.d/70-uaccess.rules
 %{_prefix}/lib/udev/rules.d/71-seat.rules
 %{_prefix}/lib/udev/rules.d/73-seat-late.rules
