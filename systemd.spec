@@ -7,13 +7,13 @@
 #
 Summary:	A System and Service Manager
 Name:		systemd
-Version:	207
-Release:	3
+Version:	208
+Release:	1
 Epoch:		1
 License:	GPL v2+
 Group:		Base
 Source0:	http://www.freedesktop.org/software/systemd/%{name}-%{version}.tar.xz
-# Source0-md5:	7799f3cc9d289b8db1c1fa56ae7ecd88
+# Source0-md5:	6b30239cbea4cb2c832625f1012dbe03
 # user session
 Source1:	%{name}-user.pamd
 Source2:	dbus.service
@@ -25,7 +25,6 @@ Source11:	%{name}-sysctl.conf
 Source20:	udev-65-permissions.rules
 #
 Patch0:		%{name}-localectl-lib64.patch
-Patch1:		bug69315.patch
 URL:		http://www.freedesktop.org/wiki/Software/systemd
 BuildRequires:	autoconf
 BuildRequires:	automake
@@ -172,7 +171,6 @@ Zsh auto-complete site functions.
 %if %{_lib} == "lib64"
 %patch0 -p1
 %endif
-%patch1 -p1
 
 # define different than upstream sysrq behaviour
 %{__sed} -i "s|kernel\.sysrq.*|kernel.sysrq = 1|" \
