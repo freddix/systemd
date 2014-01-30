@@ -8,7 +8,7 @@
 Summary:	A System and Service Manager
 Name:		systemd
 Version:	208
-Release:	3
+Release:	4
 Epoch:		1
 License:	GPL v2+
 Group:		Base
@@ -25,6 +25,7 @@ Source11:	%{name}-sysctl.conf
 Source20:	udev-65-permissions.rules
 #
 Patch0:		%{name}-localectl-lib64.patch
+Patch1:		%{name}-check-for-valid-kmsg.patch
 URL:		http://www.freedesktop.org/wiki/Software/systemd
 BuildRequires:	autoconf
 BuildRequires:	automake
@@ -171,6 +172,8 @@ Zsh auto-complete site functions.
 %if %{_lib} == "lib64"
 %patch0 -p1
 %endif
+
+%patch1 -p1
 
 # define different than upstream sysrq behaviour
 %{__sed} -i "s|kernel\.sysrq.*|kernel.sysrq = 1|" \
