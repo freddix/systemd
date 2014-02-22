@@ -7,13 +7,13 @@
 #
 Summary:	A System and Service Manager
 Name:		systemd
-Version:	208
-Release:	4
+Version:	209
+Release:	2
 Epoch:		1
 License:	GPL v2+
 Group:		Base
 Source0:	http://www.freedesktop.org/software/systemd/%{name}-%{version}.tar.xz
-# Source0-md5:	6b30239cbea4cb2c832625f1012dbe03
+# Source0-md5:	2c7a7c8ffede079a3e1b241565bd4ed7
 # user session
 Source1:	%{name}-user.pamd
 Source2:	dbus.service
@@ -25,7 +25,7 @@ Source11:	%{name}-sysctl.conf
 Source20:	udev-65-permissions.rules
 #
 Patch0:		%{name}-localectl-lib64.patch
-Patch1:		%{name}-check-for-valid-kmsg.patch
+Patch1:		%{name}-typo.patch
 URL:		http://www.freedesktop.org/wiki/Software/systemd
 BuildRequires:	autoconf
 BuildRequires:	automake
@@ -38,12 +38,14 @@ BuildRequires:	kmod-devel
 BuildRequires:	libblkid-devel
 BuildRequires:	libcap-devel
 BuildRequires:	libmicrohttpd-devel
+BuildRequires:	libseccomp-devel
 BuildRequires:	libtool
 BuildRequires:	libxslt-progs
 BuildRequires:	m4
 BuildRequires:	pam-devel
 BuildRequires:	pciutils-devel
 BuildRequires:	pkg-config
+BuildRequires:	python-lxml
 BuildRequires:	qrencode-devel
 BuildRequires:	usbutils
 BuildRequires:	vala
@@ -191,6 +193,7 @@ Zsh auto-complete site functions.
 	--disable-silent-rules	\
 	--disable-static	\
 	--disable-tcpwrap	\
+	--enable-compat-libs	\
 	--with-firmware-path=/usr/lib/firmware	\
 	--with-sysvinit-path=	\
 	--with-sysvrcnd-path=
@@ -317,11 +320,14 @@ fi
 %defattr(644,root,root,755)
 %doc DISTRO_PORTING README TODO
 %attr(755,root,root) %{_bindir}/bootctl
+%attr(755,root,root) %{_bindir}/busctl
 %attr(755,root,root) %{_bindir}/hostnamectl
 %attr(755,root,root) %{_bindir}/journalctl
 %attr(755,root,root) %{_bindir}/localectl
 %attr(755,root,root) %{_bindir}/loginctl
 %attr(755,root,root) %{_bindir}/machinectl
+%attr(755,root,root) %{_bindir}/timedatectl
+
 %attr(755,root,root) %{_bindir}/systemd
 %attr(755,root,root) %{_bindir}/systemd-analyze
 %attr(755,root,root) %{_bindir}/systemd-ask-password
@@ -338,7 +344,6 @@ fi
 %attr(755,root,root) %{_bindir}/systemd-run
 %attr(755,root,root) %{_bindir}/systemd-stdio-bridge
 %attr(755,root,root) %{_bindir}/systemd-tty-ask-password-agent
-%attr(755,root,root) %{_bindir}/timedatectl
 
 %attr(755,root,root) %{_bindir}/halt
 %attr(755,root,root) %{_bindir}/poweroff
@@ -356,6 +361,7 @@ fi
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-activate
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-backlight
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-binfmt
+%attr(755,root,root) %{_prefix}/lib/systemd/systemd-bus-proxyd
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-cgroups-agent
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-coredump
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-cryptsetup
@@ -368,14 +374,17 @@ fi
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-machined
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-modules-load
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-multi-seat-x
+%attr(755,root,root) %{_prefix}/lib/systemd/systemd-networkd
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-quotacheck
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-random-seed
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-readahead
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-remount-fs
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-reply-password
+%attr(755,root,root) %{_prefix}/lib/systemd/systemd-rfkill
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-shutdown
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-shutdownd
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-sleep
+%attr(755,root,root) %{_prefix}/lib/systemd/systemd-socket-proxyd
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-sysctl
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-timedated
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-udevd
@@ -434,6 +443,7 @@ fi
 %{_sysconfdir}/dbus-1/system.d/org.freedesktop.systemd1.conf
 %{_sysconfdir}/dbus-1/system.d/org.freedesktop.timedate1.conf
 
+%{_prefix}/lib/tmpfiles.d/systemd-nologin.conf
 %{_prefix}/lib/tmpfiles.d/systemd.conf
 %{_prefix}/lib/tmpfiles.d/tmp.conf
 %{_prefix}/lib/tmpfiles.d/x11.conf
@@ -476,6 +486,9 @@ fi
 
 %dir %{_prefix}/lib/systemd/catalog
 %{_prefix}/lib/systemd/catalog/systemd.catalog
+%lang (fr) %{_prefix}/lib/systemd/catalog/systemd.fr.catalog
+%lang (it) %{_prefix}/lib/systemd/catalog/systemd.it.catalog
+%lang (ru) %{_prefix}/lib/systemd/catalog/systemd.ru.catalog
 
 %dir %{_prefix}/lib/systemd/ntp-units.d
 %dir %{_prefix}/lib/systemd/system-generators
@@ -491,6 +504,7 @@ fi
 %dir %{_sysconfdir}/tmpfiles.d
 
 %dir %{_sysconfdir}/systemd
+%dir %{_sysconfdir}/systemd/network
 %dir %{_sysconfdir}/systemd/ntp-units.d
 %dir %{_sysconfdir}/systemd/system
 %dir %{_sysconfdir}/systemd/user
@@ -504,31 +518,49 @@ fi
 %dir %{_prefix}/lib/systemd/system/basic.target.wants
 %dir %{_prefix}/lib/systemd/system/dbus.target.wants
 %dir %{_prefix}/lib/systemd/system/default.target.wants
-%dir %{_prefix}/lib/systemd/system/local-fs.target.wants
-%dir %{_prefix}/lib/systemd/system/multi-user.target.wants
-%dir %{_prefix}/lib/systemd/system/sockets.target.wants
-%dir %{_prefix}/lib/systemd/system/sysinit.target.wants
+
+%{_prefix}/lib/systemd/system/busnames.target
+%dir %{_prefix}/lib/systemd/system/busnames.target.wants
+%{_prefix}/lib/systemd/system/busnames.target.wants/org.freedesktop.hostname1.busname
+%{_prefix}/lib/systemd/system/busnames.target.wants/org.freedesktop.locale1.busname
+%{_prefix}/lib/systemd/system/busnames.target.wants/org.freedesktop.login1.busname
+%{_prefix}/lib/systemd/system/busnames.target.wants/org.freedesktop.machine1.busname
+%{_prefix}/lib/systemd/system/busnames.target.wants/org.freedesktop.timedate1.busname
+%{_prefix}/lib/systemd/system/org.freedesktop.hostname1.busname
+%{_prefix}/lib/systemd/system/org.freedesktop.locale1.busname
+%{_prefix}/lib/systemd/system/org.freedesktop.login1.busname
+%{_prefix}/lib/systemd/system/org.freedesktop.machine1.busname
+%{_prefix}/lib/systemd/system/org.freedesktop.timedate1.busname
 
 %{_prefix}/lib/systemd/system/local-fs-pre.target
 %{_prefix}/lib/systemd/system/local-fs.target
-%{_prefix}/lib/systemd/system/local-fs.target.wants/systemd-fsck-root.service
+%dir %{_prefix}/lib/systemd/system/local-fs.target.wants
 %{_prefix}/lib/systemd/system/local-fs.target.wants/systemd-remount-fs.service
 %{_prefix}/lib/systemd/system/local-fs.target.wants/tmp.mount
 
 %{_prefix}/lib/systemd/system/multi-user.target
+%dir %{_prefix}/lib/systemd/system/multi-user.target.wants
 %{_prefix}/lib/systemd/system/multi-user.target.wants/getty.target
 %{_prefix}/lib/systemd/system/multi-user.target.wants/systemd-ask-password-wall.path
 %{_prefix}/lib/systemd/system/multi-user.target.wants/systemd-logind.service
+%{_prefix}/lib/systemd/system/multi-user.target.wants/systemd-networkd.service
 %{_prefix}/lib/systemd/system/multi-user.target.wants/systemd-user-sessions.service
+%{_prefix}/lib/systemd/system/systemd-networkd.service
+%{_prefix}/lib/systemd/system/systemd-rfkill@.service
+
+%dir %{_prefix}/lib/systemd/network
+%{_prefix}/lib/systemd/network/99-default.link
 
 %{_prefix}/lib/systemd/system/shutdown.target
 
 %{_prefix}/lib/systemd/system/sockets.target
+%dir %{_prefix}/lib/systemd/system/sockets.target.wants
 %{_prefix}/lib/systemd/system/sockets.target.wants/systemd-initctl.socket
 %{_prefix}/lib/systemd/system/sockets.target.wants/systemd-journald.socket
 %{_prefix}/lib/systemd/system/sockets.target.wants/systemd-shutdownd.socket
 
 %{_prefix}/lib/systemd/system/sysinit.target
+%dir %{_prefix}/lib/systemd/system/sysinit.target.wants
 %{_prefix}/lib/systemd/system/sysinit.target.wants/cryptsetup.target
 %{_prefix}/lib/systemd/system/sysinit.target.wants/dev-hugepages.mount
 %{_prefix}/lib/systemd/system/sysinit.target.wants/dev-mqueue.mount
@@ -619,6 +651,7 @@ fi
 %{_prefix}/lib/systemd/system/autovt@.service
 %{_prefix}/lib/systemd/system/console-getty.service
 %{_prefix}/lib/systemd/system/console-shell.service
+%{_prefix}/lib/systemd/system/container-getty@.service
 %{_prefix}/lib/systemd/system/dbus-org.freedesktop.hostname1.service
 %{_prefix}/lib/systemd/system/dbus-org.freedesktop.locale1.service
 %{_prefix}/lib/systemd/system/dbus-org.freedesktop.login1.service
@@ -682,7 +715,9 @@ fi
 %attr(640,root,root) %config(noreplace) %verify(not md5 mtime size) /etc/pam.d/systemd-user
 %dir %{_prefix}/lib/systemd/user
 # targets
+%{_prefix}/lib/systemd/user/basic.target
 %{_prefix}/lib/systemd/user/bluetooth.target
+%{_prefix}/lib/systemd/user/busnames.target
 %{_prefix}/lib/systemd/user/default.target
 %{_prefix}/lib/systemd/user/exit.target
 %{_prefix}/lib/systemd/user/paths.target
@@ -716,20 +751,20 @@ fi
 %attr(755,root,root) %ghost %{_libdir}/libsystemd-id128.so.?
 %attr(755,root,root) %ghost %{_libdir}/libsystemd-journal.so.?
 %attr(755,root,root) %ghost %{_libdir}/libsystemd-login.so.?
+%attr(755,root,root) %ghost %{_libdir}/libsystemd.so.?
 %attr(755,root,root) %{_libdir}/libsystemd-daemon.so.*.*.*
 %attr(755,root,root) %{_libdir}/libsystemd-id128.so.*.*.*
 %attr(755,root,root) %{_libdir}/libsystemd-journal.so.*.*.*
 %attr(755,root,root) %{_libdir}/libsystemd-login.so.*.*.*
-
+%attr(755,root,root) %{_libdir}/libsystemd.so.*.*.*
 %attr(755,root,root) %{_libdir}/libnss_myhostname.so.2
 
 %files devel
 %defattr(644,root,root,755)
-%attr(755,root,root) %{_libdir}/libsystemd-*.so
-%{_datadir}/dbus-1/interfaces/*.xml
+%attr(755,root,root) %{_libdir}/libsystemd*.so
 %{_includedir}/systemd
 %{_npkgconfigdir}/systemd.pc
-%{_pkgconfigdir}/libsystemd-*.pc
+%{_pkgconfigdir}/libsystemd*.pc
 %{_mandir}/man3/*.3*
 
 %files -n python-%{name}
@@ -766,6 +801,7 @@ fi
 %{_prefix}/lib/udev/rules.d/42-usb-hid-pm.rules
 %{_prefix}/lib/udev/rules.d/50-udev-default.rules
 %{_prefix}/lib/udev/rules.d/60-cdrom_id.rules
+%{_prefix}/lib/udev/rules.d/60-drm.rules
 %{_prefix}/lib/udev/rules.d/60-keyboard.rules
 %{_prefix}/lib/udev/rules.d/60-persistent-alsa.rules
 %{_prefix}/lib/udev/rules.d/60-persistent-input.rules
@@ -782,15 +818,18 @@ fi
 %{_prefix}/lib/udev/rules.d/75-tty-description.rules
 %{_prefix}/lib/udev/rules.d/78-sound-card.rules
 %{_prefix}/lib/udev/rules.d/80-drivers.rules
-%{_prefix}/lib/udev/rules.d/80-net-name-slot.rules
+%{_prefix}/lib/udev/rules.d/80-net-setup-link.rules
 %{_prefix}/lib/udev/rules.d/95-udev-late.rules
 
 # hwdb
 %{_prefix}/lib/udev/hwdb.d/20-OUI.hwdb
 %{_prefix}/lib/udev/hwdb.d/20-acpi-vendor.hwdb
 %{_prefix}/lib/udev/hwdb.d/20-bluetooth-vendor-product.hwdb
+%{_prefix}/lib/udev/hwdb.d/20-net-ifname.hwdb
 %{_prefix}/lib/udev/hwdb.d/20-pci-classes.hwdb
 %{_prefix}/lib/udev/hwdb.d/20-pci-vendor-model.hwdb
+%{_prefix}/lib/udev/hwdb.d/20-sdio-classes.hwdb
+%{_prefix}/lib/udev/hwdb.d/20-sdio-vendor-model.hwdb
 %{_prefix}/lib/udev/hwdb.d/20-usb-classes.hwdb
 %{_prefix}/lib/udev/hwdb.d/20-usb-vendor-model.hwdb
 %{_prefix}/lib/udev/hwdb.d/60-keyboard.hwdb
