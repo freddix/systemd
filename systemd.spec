@@ -7,13 +7,13 @@
 #
 Summary:	A System and Service Manager
 Name:		systemd
-Version:	209
-Release:	2
+Version:	210
+Release:	1
 Epoch:		1
 License:	GPL v2+
 Group:		Base
 Source0:	http://www.freedesktop.org/software/systemd/%{name}-%{version}.tar.xz
-# Source0-md5:	2c7a7c8ffede079a3e1b241565bd4ed7
+# Source0-md5:	03efddf8c9eca36d4d590f9967e7e818
 # user session
 Source1:	%{name}-user.pamd
 Source2:	dbus.service
@@ -25,7 +25,6 @@ Source11:	%{name}-sysctl.conf
 Source20:	udev-65-permissions.rules
 #
 Patch0:		%{name}-localectl-lib64.patch
-Patch1:		%{name}-typo.patch
 URL:		http://www.freedesktop.org/wiki/Software/systemd
 BuildRequires:	autoconf
 BuildRequires:	automake
@@ -174,8 +173,6 @@ Zsh auto-complete site functions.
 %if %{_lib} == "lib64"
 %patch0 -p1
 %endif
-
-%patch1 -p1
 
 # define different than upstream sysrq behaviour
 %{__sed} -i "s|kernel\.sysrq.*|kernel.sysrq = 1|" \
@@ -543,12 +540,12 @@ fi
 %{_prefix}/lib/systemd/system/multi-user.target.wants/getty.target
 %{_prefix}/lib/systemd/system/multi-user.target.wants/systemd-ask-password-wall.path
 %{_prefix}/lib/systemd/system/multi-user.target.wants/systemd-logind.service
-%{_prefix}/lib/systemd/system/multi-user.target.wants/systemd-networkd.service
 %{_prefix}/lib/systemd/system/multi-user.target.wants/systemd-user-sessions.service
 %{_prefix}/lib/systemd/system/systemd-networkd.service
 %{_prefix}/lib/systemd/system/systemd-rfkill@.service
 
 %dir %{_prefix}/lib/systemd/network
+%{_prefix}/lib/systemd/network/80-container-host0.network
 %{_prefix}/lib/systemd/network/99-default.link
 
 %{_prefix}/lib/systemd/system/shutdown.target
