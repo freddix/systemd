@@ -7,13 +7,13 @@
 #
 Summary:	A System and Service Manager
 Name:		systemd
-Version:	210
+Version:	211
 Release:	1
 Epoch:		1
 License:	GPL v2+
 Group:		Base
 Source0:	http://www.freedesktop.org/software/systemd/%{name}-%{version}.tar.xz
-# Source0-md5:	03efddf8c9eca36d4d590f9967e7e818
+# Source0-md5:	0a70c382b6089526f98073b4ee85ef75
 # user session
 Source1:	%{name}-user.pamd
 Source2:	dbus.service
@@ -372,6 +372,7 @@ fi
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-modules-load
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-multi-seat-x
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-networkd
+%attr(755,root,root) %{_prefix}/lib/systemd/systemd-networkd-wait-online
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-quotacheck
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-random-seed
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-readahead
