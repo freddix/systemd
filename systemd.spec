@@ -7,13 +7,13 @@
 #
 Summary:	A System and Service Manager
 Name:		systemd
-Version:	211
+Version:	212
 Release:	1
 Epoch:		1
 License:	GPL v2+
 Group:		Base
 Source0:	http://www.freedesktop.org/software/systemd/%{name}-%{version}.tar.xz
-# Source0-md5:	0a70c382b6089526f98073b4ee85ef75
+# Source0-md5:	257a75fff826ff91cb1ce567091cf270
 # user session
 Source1:	%{name}-user.pamd
 Source2:	dbus.service
@@ -365,6 +365,7 @@ fi
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-fsck
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-hostnamed
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-initctl
+%attr(755,root,root) %{_prefix}/lib/systemd/systemd-journal-remote
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-journald
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-localed
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-logind
