@@ -7,13 +7,13 @@
 #
 Summary:	A System and Service Manager
 Name:		systemd
-Version:	212
-Release:	1
+Version:	214
+Release:	5
 Epoch:		1
 License:	GPL v2+
 Group:		Base
 Source0:	http://www.freedesktop.org/software/systemd/%{name}-%{version}.tar.xz
-# Source0-md5:	257a75fff826ff91cb1ce567091cf270
+# Source0-md5:	eac4f9fc5bd18a0efc3fc20858baacf3
 # user session
 Source1:	%{name}-user.pamd
 Source2:	dbus.service
@@ -218,7 +218,7 @@ install -d $RPM_BUILD_ROOT%{_prefix}/lib/systemd/system/dbus.target.wants
 install -d $RPM_BUILD_ROOT%{_prefix}/lib/systemd/system/default.target.wants
 install -d $RPM_BUILD_ROOT%{_prefix}/lib/systemd/system-preset
 install -d $RPM_BUILD_ROOT%{_prefix}/lib/systemd/user-preset
-install -d $RPM_BUILD_ROOT/var/lib/systemd/coredump
+#install -d $RPM_BUILD_ROOT/var/lib/systemd/coredump
 install -d $RPM_BUILD_ROOT/var/lib/systemd/catalog
 install -d $RPM_BUILD_ROOT/var/log/journal
 touch $RPM_BUILD_ROOT/var/lib/systemd/catalog/database
@@ -246,6 +246,15 @@ rm -rf $RPM_BUILD_ROOT
 
 %pre
 %groupadd -g 112 -r -f systemd-journal
+%groupadd -g 114 -r -f systemd-timesync
+%groupadd -g 115 -r -f systemd-network
+%groupadd -g 116 -r -f systemd-resolve
+%groupadd -g 119 -r -f systemd-bus-proxy
+%useradd -u 114 -r -d / -s /usr/bin/false -c "systemd time synchronization" -g systemd-timesync systemd-timesync
+%useradd -u 115 -r -d / -s /usr/bin/false -c "systemd network managment" -g systemd-network systemd-network
+%useradd -u 116 -r -d / -s /usr/bin/false -c "systemd resolver" -g systemd-resolve systemd-resolve
+%useradd -u 119 -r -d / -s /usr/bin/false -c "systemd bus proxy" -g systemd-bus-proxy systemd-bus-proxy
+
 systemctl stop systemd-udevd-control.socket systemd-udevd-kernel.socket systemd-udevd.service >/dev/null 2>&1 || :
 
 %post
@@ -255,25 +264,30 @@ systemctl daemon-reexec > /dev/null 2>&1 || :
 systemctl start systemd-udev.service > /dev/null 2>&1 || :
 udevadm hwdb --update > /dev/null 2>&1 || :
 journalctl --update-catalog > /dev/null 2>&1 || :
+systemd-tmpfiles --create >/dev/null 2>&1 || :
 
 %post units
 if [ "$1" = "1" ] ; then
     /usr/bin/systemctl enable \
-    	getty@.service \
+	getty@tty1.service \
 	remote-fs.target \
 	systemd-readahead-replay.service \
-	systemd-readahead-collect.service >/dev/null 2>&1 || :
+	systemd-readahead-collect.service \
+	systemd-networkd.service \
+	>/dev/null 2>&1 || :
     ln -sf /usr/lib/systemd/system/multi-user.target \
     	/etc/systemd/system/default.target
 fi
 
 %preun units
 if [ "$1" = "0" ]; then
-    systemctl disable \
-    	getty@.service \
+	systemctl disable \
+	getty@tty1.service \
 	remote-fs.target \
 	systemd-readahead-replay.service \
-	systemd-readahead-collect.service >/dev/null 2>&1 || :
+	systemd-readahead-collect.service \
+	systemd-networkd.service \
+	>/dev/null 2>&1 || :
     rm -f %{_sysconfdir}/systemd/system/default.target > /dev/null 2>&1 || :
 fi
 
@@ -283,8 +297,15 @@ if [ "$1" -ge "1" ] ; then
 	systemctl try-restart systemd-logind.service >/dev/null 2>&1 || :
 fi
 if [ "$1" = "0" ]; then
-    %userremove systemd-journal
     %groupremove systemd-journal
+    %userremove systemd-bus-proxy
+    %groupremove systemd-bus-proxy
+    %userremove systemd-network
+    %groupremove systemd-network
+    %userremove systemd-resolve
+    %groupremove systemd-resolve
+    %userremove systemd-timesync
+    %groupremove systemd-timesync
 fi
 
 %post libs
@@ -331,7 +352,7 @@ fi
 %attr(755,root,root) %{_bindir}/systemd-cat
 %attr(755,root,root) %{_bindir}/systemd-cgls
 %attr(755,root,root) %{_bindir}/systemd-cgtop
-%attr(755,root,root) %{_bindir}/systemd-coredumpctl
+#%attr(755,root,root) %{_bindir}/systemd-coredumpctl
 %attr(755,root,root) %{_bindir}/systemd-delta
 %attr(755,root,root) %{_bindir}/systemd-detect-virt
 %attr(755,root,root) %{_bindir}/systemd-inhibit
@@ -360,7 +381,7 @@ fi
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-binfmt
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-bus-proxyd
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-cgroups-agent
-%attr(755,root,root) %{_prefix}/lib/systemd/systemd-coredump
+#%attr(755,root,root) %{_prefix}/lib/systemd/systemd-coredump
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-cryptsetup
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-fsck
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-hostnamed
@@ -405,7 +426,7 @@ fi
 
 %config(noreplace) %verify(not md5 mtime size) /etc/X11/xorg.conf.d/00-keyboard.conf
 %{_prefix}/lib/modules-load.d/loop.conf
-%{_prefix}/lib/sysctl.d/50-coredump.conf
+#%{_prefix}/lib/sysctl.d/50-coredump.conf
 %{_prefix}/lib/sysctl.d/50-default.conf
 %{_prefix}/lib/sysctl.d/60-freddix.conf
 
@@ -413,9 +434,11 @@ fi
 %ghost %config(noreplace) %{_sysconfdir}/machine-info
 
 %dir %{_sysconfdir}/systemd
-%config(noreplace) %verify(not md5 mtime size) %{_sysconfdir}/systemd/system.conf
 %config(noreplace) %verify(not md5 mtime size) %{_sysconfdir}/systemd/journald.conf
 %config(noreplace) %verify(not md5 mtime size) %{_sysconfdir}/systemd/logind.conf
+%config(noreplace) %verify(not md5 mtime size) %{_sysconfdir}/systemd/resolved.conf
+%config(noreplace) %verify(not md5 mtime size) %{_sysconfdir}/systemd/system.conf
+%config(noreplace) %verify(not md5 mtime size) %{_sysconfdir}/systemd/timesyncd.conf
 %config(noreplace) %verify(not md5 mtime size) %{_sysconfdir}/systemd/user.conf
 
 %dir %{_datadir}/systemd
@@ -445,6 +468,7 @@ fi
 %{_prefix}/lib/tmpfiles.d/systemd-nologin.conf
 %{_prefix}/lib/tmpfiles.d/systemd.conf
 %{_prefix}/lib/tmpfiles.d/tmp.conf
+%{_prefix}/lib/tmpfiles.d/var.conf
 %{_prefix}/lib/tmpfiles.d/x11.conf
 
 %{_prefix}/lib/udev/rules.d/50-firmware.rules
@@ -462,7 +486,7 @@ fi
 %exclude %{_mandir}/man8/systemd-tmpfiles.8*
 
 %dir /var/lib/systemd
-%dir /var/lib/systemd/coredump
+#%dir /var/lib/systemd/coredump
 %dir /var/lib/systemd/catalog
 %dir /var/log/journal
 %ghost /var/lib/systemd/catalog/database
@@ -489,7 +513,6 @@ fi
 %lang (it) %{_prefix}/lib/systemd/catalog/systemd.it.catalog
 %lang (ru) %{_prefix}/lib/systemd/catalog/systemd.ru.catalog
 
-%dir %{_prefix}/lib/systemd/ntp-units.d
 %dir %{_prefix}/lib/systemd/system-generators
 %dir %{_prefix}/lib/systemd/system-preset
 %dir %{_prefix}/lib/systemd/system-shutdown
@@ -504,7 +527,6 @@ fi
 
 %dir %{_sysconfdir}/systemd
 %dir %{_sysconfdir}/systemd/network
-%dir %{_sysconfdir}/systemd/ntp-units.d
 %dir %{_sysconfdir}/systemd/system
 %dir %{_sysconfdir}/systemd/user
 
@@ -544,11 +566,24 @@ fi
 %{_prefix}/lib/systemd/system/multi-user.target.wants/systemd-logind.service
 %{_prefix}/lib/systemd/system/multi-user.target.wants/systemd-user-sessions.service
 %{_prefix}/lib/systemd/system/systemd-networkd.service
+%{_prefix}/lib/systemd/system/systemd-networkd-wait-online.service
+%{_prefix}/lib/systemd/system/network-pre.target
 %{_prefix}/lib/systemd/system/systemd-rfkill@.service
+
+%{_prefix}/lib/systemd/system/systemd-resolved.service
+%attr(755,root,root) %{_prefix}/lib/systemd/systemd-resolved
+
+%{_prefix}/lib/systemd/system/systemd-timesyncd.service
+%attr(755,root,root) %{_prefix}/lib/systemd/systemd-timesyncd
 
 %dir %{_prefix}/lib/systemd/network
 %{_prefix}/lib/systemd/network/80-container-host0.network
 %{_prefix}/lib/systemd/network/99-default.link
+%{_prefix}/lib/systemd/network/80-container-ve.network
+
+%dir %{_prefix}/lib/systemd/ntp-units.d
+%dir %{_sysconfdir}/systemd/ntp-units.d
+%{_prefix}/lib/systemd/ntp-units.d/90-systemd.list
 
 %{_prefix}/lib/systemd/system/shutdown.target
 
@@ -630,10 +665,11 @@ fi
 %{_prefix}/lib/systemd/system/tmp.mount
 
 # sockets
+%{_prefix}/lib/systemd/system/syslog.socket
 %{_prefix}/lib/systemd/system/systemd-initctl.socket
+%{_prefix}/lib/systemd/system/systemd-journald-dev-log.socket
 %{_prefix}/lib/systemd/system/systemd-journald.socket
 %{_prefix}/lib/systemd/system/systemd-shutdownd.socket
-%{_prefix}/lib/systemd/system/syslog.socket
 
 # timers
 %dir %{_prefix}/lib/systemd/system/timers.target.wants
@@ -837,6 +873,7 @@ fi
 %ghost %{_sysconfdir}/udev/hwdb.bin
 
 # systemd stuff
+%{_prefix}/lib/systemd/system/sockets.target.wants/systemd-journald-dev-log.socket
 %{_prefix}/lib/systemd/system/sockets.target.wants/systemd-udevd-control.socket
 %{_prefix}/lib/systemd/system/sockets.target.wants/systemd-udevd-kernel.socket
 %{_prefix}/lib/systemd/system/systemd-udev-settle.service
