@@ -1,13 +1,4 @@
-ENV{ID_CDROM}=="?*",		MODE="0664",	GROUP="cdrom"
-SUBSYSTEMS=="scsi", ATTRS{type}=="3",		GROUP="usb"
-SUBSYSTEMS=="scsi", ATTRS{type}=="4",		GROUP="cdrom"
-SUBSYSTEMS=="scsi", ATTRS{type}=="5",		GROUP="cdrom"
-SUBSYSTEMS=="scsi", ATTRS{type}=="6",		GROUP="usb"
-
-SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device",	MODE="0664",	GROUP="usb"
-
 KERNEL=="fuse",					GROUP="fuse"
-
 KERNEL=="hpet",					GROUP="audio"
 KERNEL=="rtc|rtc[0-9]*",			GROUP="audio"
 
