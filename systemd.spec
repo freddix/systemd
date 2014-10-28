@@ -7,13 +7,13 @@
 #
 Summary:	A System and Service Manager
 Name:		systemd
-Version:	216
-Release:	2
+Version:	217
+Release:	1
 Epoch:		1
 License:	GPL v2+
 Group:		Base
 Source0:	http://www.freedesktop.org/software/systemd/%{name}-%{version}.tar.xz
-# Source0-md5:	04fda588a04f549da0f397dce3ae6a39
+# Source0-md5:	e68dbff3cc19f66e341572d9fb2ffa89
 # user session
 Source1:	%{name}-user.pamd
 Source2:	dbus.service
@@ -231,7 +231,6 @@ install -d $RPM_BUILD_ROOT/etc/{udev/rules.d,X11/xorg.conf.d}
 %{__rm} $RPM_BUILD_ROOT%{_prefix}/lib/systemd/systemd-coredump
 %{__rm} $RPM_BUILD_ROOT%{_sysconfdir}/systemd/coredump.conf
 
-
 install -d $RPM_BUILD_ROOT%{_prefix}/lib/systemd/system/basic.target.wants
 install -d $RPM_BUILD_ROOT%{_prefix}/lib/systemd/system/dbus.target.wants
 install -d $RPM_BUILD_ROOT%{_prefix}/lib/systemd/system/default.target.wants
@@ -258,6 +257,8 @@ ln -s %{_prefix}/lib/systemd/systemd $RPM_BUILD_ROOT%{_bindir}/systemd
 ln -s systemctl $RPM_BUILD_ROOT%{_bindir}/halt
 ln -s systemctl $RPM_BUILD_ROOT%{_bindir}/poweroff
 ln -s systemctl $RPM_BUILD_ROOT%{_bindir}/reboot
+
+%find_lang %{name}
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -292,8 +293,6 @@ if [ "$1" = "1" ] ; then
     /usr/bin/systemctl enable \
 	getty@tty1.service \
 	remote-fs.target \
-	systemd-readahead-replay.service \
-	systemd-readahead-collect.service \
 	systemd-networkd.service \
 	>/dev/null 2>&1 || :
     ln -sf /usr/lib/systemd/system/multi-user.target \
@@ -305,8 +304,6 @@ if [ "$1" = "0" ]; then
 	systemctl disable \
 	getty@tty1.service \
 	remote-fs.target \
-	systemd-readahead-replay.service \
-	systemd-readahead-collect.service \
 	systemd-networkd.service \
 	>/dev/null 2>&1 || :
     rm -f %{_sysconfdir}/systemd/system/default.target > /dev/null 2>&1 || :
@@ -364,7 +361,7 @@ fi
 %postun	-n udev-glib -p /usr/sbin/ldconfig
 
 
-%files
+%files -f %{name}.lang
 %defattr(644,root,root,755)
 %doc DISTRO_PORTING README TODO
 %attr(755,root,root) %{_bindir}/bootctl
@@ -416,6 +413,7 @@ fi
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-cgroups-agent
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-cryptsetup
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-fsck
+%attr(755,root,root) %{_prefix}/lib/systemd/systemd-hibernate-resume
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-hostnamed
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-initctl
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-journald
@@ -423,12 +421,10 @@ fi
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-logind
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-machined
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-modules-load
-%attr(755,root,root) %{_prefix}/lib/systemd/systemd-multi-seat-x
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-networkd
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-networkd-wait-online
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-quotacheck
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-random-seed
-%attr(755,root,root) %{_prefix}/lib/systemd/systemd-readahead
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-remount-fs
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-reply-password
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-rfkill
@@ -449,10 +445,7 @@ fi
 
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-resolve-host
 %{_datadir}/dbus-1/system-services/org.freedesktop.resolve1.service
-%dir %{_prefix}/lib/systemd/system/busnames.target.wants
-%{_prefix}/lib/systemd/system/busnames.target.wants/org.freedesktop.resolve1.busname
 %{_prefix}/lib/systemd/system/dbus-org.freedesktop.resolve1.service
-%{_prefix}/lib/systemd/system/org.freedesktop.resolve1.busname
 %{_sysconfdir}/dbus-1/system.d/org.freedesktop.resolve1.conf
 
 %attr(755,root,root) %{_bindir}/systemd-firstboot
@@ -466,6 +459,7 @@ fi
 %attr(755,root,root) %{_prefix}/lib/systemd/system-generators/systemd-fstab-generator
 %attr(755,root,root) %{_prefix}/lib/systemd/system-generators/systemd-getty-generator
 %attr(755,root,root) %{_prefix}/lib/systemd/system-generators/systemd-gpt-auto-generator
+%attr(755,root,root) %{_prefix}/lib/systemd/system-generators/systemd-hibernate-resume-generator
 %attr(755,root,root) %{_prefix}/lib/systemd/system-generators/systemd-system-update-generator
 
 %attr(755,root,root) %{_libdir}/security/pam_systemd.so
@@ -517,7 +511,6 @@ fi
 %{_prefix}/lib/tmpfiles.d/var.conf
 %{_prefix}/lib/tmpfiles.d/x11.conf
 
-%{_prefix}/lib/udev/rules.d/50-firmware.rules
 %{_prefix}/lib/udev/rules.d/70-uaccess.rules
 %{_prefix}/lib/udev/rules.d/71-seat.rules
 %{_prefix}/lib/udev/rules.d/73-seat-late.rules
@@ -549,9 +542,10 @@ fi
 
 %dir %{_prefix}/lib/systemd/catalog
 %{_prefix}/lib/systemd/catalog/systemd.catalog
-%lang (fr) %{_prefix}/lib/systemd/catalog/systemd.fr.catalog
-%lang (it) %{_prefix}/lib/systemd/catalog/systemd.it.catalog
-%lang (ru) %{_prefix}/lib/systemd/catalog/systemd.ru.catalog
+%lang(fr) %{_prefix}/lib/systemd/catalog/systemd.fr.catalog
+%lang(it) %{_prefix}/lib/systemd/catalog/systemd.it.catalog
+%lang(ru) %{_prefix}/lib/systemd/catalog/systemd.ru.catalog
+%lang(pl) %{_prefix}/lib/systemd/catalog/systemd.pl.catalog
 
 %dir %{_prefix}/lib/systemd/system-preset
 %dir %{_prefix}/lib/systemd/system-shutdown
@@ -579,19 +573,6 @@ fi
 %dir %{_prefix}/lib/systemd/system/dbus.target.wants
 %dir %{_prefix}/lib/systemd/system/default.target.wants
 %dir %{_prefix}/lib/systemd/system/network-online.target.wants
-
-%{_prefix}/lib/systemd/system/busnames.target
-%dir %{_prefix}/lib/systemd/system/busnames.target.wants
-%{_prefix}/lib/systemd/system/busnames.target.wants/org.freedesktop.hostname1.busname
-%{_prefix}/lib/systemd/system/busnames.target.wants/org.freedesktop.locale1.busname
-%{_prefix}/lib/systemd/system/busnames.target.wants/org.freedesktop.login1.busname
-%{_prefix}/lib/systemd/system/busnames.target.wants/org.freedesktop.machine1.busname
-%{_prefix}/lib/systemd/system/busnames.target.wants/org.freedesktop.timedate1.busname
-%{_prefix}/lib/systemd/system/org.freedesktop.hostname1.busname
-%{_prefix}/lib/systemd/system/org.freedesktop.locale1.busname
-%{_prefix}/lib/systemd/system/org.freedesktop.login1.busname
-%{_prefix}/lib/systemd/system/org.freedesktop.machine1.busname
-%{_prefix}/lib/systemd/system/org.freedesktop.timedate1.busname
 
 %{_prefix}/lib/systemd/system/local-fs-pre.target
 %{_prefix}/lib/systemd/system/local-fs.target
@@ -717,7 +698,6 @@ fi
 %dir %{_prefix}/lib/systemd/system/timers.target.wants
 %{_prefix}/lib/systemd/system/timers.target
 %{_prefix}/lib/systemd/system/timers.target.wants/systemd-tmpfiles-clean.timer
-%{_prefix}/lib/systemd/system/systemd-readahead-done.timer
 %{_prefix}/lib/systemd/system/systemd-tmpfiles-clean.timer
 
 # paths
@@ -749,6 +729,7 @@ fi
 %{_prefix}/lib/systemd/system/systemd-fsck-root.service
 %{_prefix}/lib/systemd/system/systemd-fsck@.service
 %{_prefix}/lib/systemd/system/systemd-halt.service
+%{_prefix}/lib/systemd/system/systemd-hibernate-resume@.service
 %{_prefix}/lib/systemd/system/systemd-hibernate.service
 %{_prefix}/lib/systemd/system/systemd-hostnamed.service
 %{_prefix}/lib/systemd/system/systemd-hybrid-sleep.service
@@ -765,10 +746,6 @@ fi
 %{_prefix}/lib/systemd/system/systemd-poweroff.service
 %{_prefix}/lib/systemd/system/systemd-quotacheck.service
 %{_prefix}/lib/systemd/system/systemd-random-seed.service
-%{_prefix}/lib/systemd/system/systemd-readahead-collect.service
-%{_prefix}/lib/systemd/system/systemd-readahead-done.service
-%{_prefix}/lib/systemd/system/systemd-readahead-drop.service
-%{_prefix}/lib/systemd/system/systemd-readahead-replay.service
 %{_prefix}/lib/systemd/system/systemd-reboot.service
 %{_prefix}/lib/systemd/system/systemd-remount-fs.service
 %{_prefix}/lib/systemd/system/systemd-shutdownd.service
@@ -819,7 +796,6 @@ fi
 # targets
 %{_prefix}/lib/systemd/user/basic.target
 %{_prefix}/lib/systemd/user/bluetooth.target
-%{_prefix}/lib/systemd/user/busnames.target
 %{_prefix}/lib/systemd/user/default.target
 %{_prefix}/lib/systemd/user/exit.target
 %{_prefix}/lib/systemd/user/paths.target
