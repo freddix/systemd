@@ -1,4 +1,0 @@
-KERNEL=="fuse",					GROUP="fuse"
-KERNEL=="hpet",					GROUP="audio"
-KERNEL=="rtc|rtc[0-9]*",			GROUP="audio"
-
