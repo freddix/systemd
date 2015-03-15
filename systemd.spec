@@ -8,7 +8,7 @@
 Summary:	A System and Service Manager
 Name:		systemd
 Version:	219
-Release:	0.6
+Release:	1
 Epoch:		1
 License:	GPL v2+
 Group:		Base
