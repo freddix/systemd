@@ -8,7 +8,7 @@
 Summary:	A System and Service Manager
 Name:		systemd
 Version:	219
-Release:	0.3
+Release:	0.6
 Epoch:		1
 License:	GPL v2+
 Group:		Base
@@ -284,45 +284,42 @@ rm -rf $RPM_BUILD_ROOT
 %useradd -u 116 -r -d / -s /usr/bin/false -c "systemd resolver" -g systemd-resolve systemd-resolve
 %useradd -u 119 -r -d / -s /usr/bin/false -c "systemd bus proxy" -g systemd-bus-proxy systemd-bus-proxy
 %useradd -u 120 -r -d / -s /usr/bin/false -c "HTTP server for journal events" -g systemd-journal-gateway systemd-journal-gateway
-
-systemctl stop systemd-udevd-control.socket systemd-udevd-kernel.socket systemd-udevd.service >/dev/null 2>&1 || :
+systemctl stop systemd-udevd-control.socket systemd-udevd-kernel.socket systemd-udevd.service ||:
 
 %post
-systemd-machine-id-setup > /dev/null 2>&1 || :
-/usr/lib/systemd/systemd-random-seed save > /dev/null 2>&1 || :
-systemctl daemon-reexec > /dev/null 2>&1 || :
-systemctl start systemd-udev.service > /dev/null 2>&1 || :
-udevadm hwdb --update > /dev/null 2>&1 || :
-journalctl --update-catalog > /dev/null 2>&1 || :
-systemd-tmpfiles --create >/dev/null 2>&1 || :
+systemd-machine-id-setup ||:
+/usr/lib/systemd/systemd-random-seed save ||:
+systemctl daemon-reexec ||:
+systemctl start systemd-udev.service ||:
+udevadm hwdb --update ||:
+journalctl --update-catalog ||:
+systemd-tmpfiles --create ||:
 
-%post units
 if [ "$1" = "1" ] ; then
     /usr/bin/systemctl enable \
 	getty@tty1.service \
 	remote-fs.target \
 	systemd-resolved.service \
+	systemd-timesyncd.service \
 	systemd-networkd.service \
-	>/dev/null 2>&1 || :
-    ln -sf /usr/lib/systemd/system/multi-user.target \
-	/etc/systemd/system/default.target
+	systemd-networkd-wait-online.service ||:
 fi
 
-%preun units
+%preun
 if [ "$1" = "0" ]; then
 	systemctl disable \
 	getty@tty1.service \
 	remote-fs.target \
 	systemd-resolved.service \
+	systemd-timesyncd.service \
 	systemd-networkd.service \
-	>/dev/null 2>&1 || :
-    rm -f %{_sysconfdir}/systemd/system/default.target > /dev/null 2>&1 || :
+	systemd-networkd-wait-online.service ||:
 fi
 
 %postun
 if [ "$1" -ge "1" ] ; then
-	systemctl daemon-reload > /dev/null 2>&1 || :
-	systemctl try-restart systemd-logind.service >/dev/null 2>&1 || :
+	systemctl daemon-reload ||:
+	systemctl try-restart systemd-logind.service ||:
 fi
 if [ "$1" = "0" ]; then
     %groupremove systemd-journal
@@ -789,6 +786,11 @@ fi
 %{_prefix}/lib/systemd/user/dbus.socket
 %{_prefix}/lib/systemd/user/systemd-exit.service
 
+%dir /var/lib/systemd
+%dir /var/lib/systemd/catalog
+%dir %attr(2755,root,systemd-journal) /var/log/journal
+%ghost /var/lib/systemd/catalog/database
+
 %if 0
 # there is no initrd in Freddix
 %attr(755,root,root) %{_prefix}/lib/systemd/system/initrd-cleanup.service
@@ -798,27 +800,10 @@ fi
 %attr(755,root,root) %{_prefix}/lib/systemd/system/initrd-udevadm-cleanup-db.service
 %endif
 
-%files journal-gatewayd
-%defattr(644,root,root,755)
-%attr(755,root,root) %{_prefix}/lib/systemd/systemd-journal-gatewayd
-%attr(755,root,root) %{_prefix}/lib/systemd/systemd-journal-remote
-%attr(755,root,root) %{_prefix}/lib/systemd/systemd-journal-upload
-%{_datadir}/systemd/gatewayd
-%{_prefix}/lib/systemd/system/systemd-journal-gatewayd.service
-%{_prefix}/lib/systemd/system/systemd-journal-gatewayd.socket
-%{_prefix}/lib/systemd/system/systemd-journal-remote.service
-%{_prefix}/lib/systemd/system/systemd-journal-remote.socket
-%{_prefix}/lib/systemd/system/systemd-journal-upload.service
-%{_prefix}/lib/sysusers.d/systemd-remote.conf
-%{_prefix}/lib/tmpfiles.d/systemd-remote.conf
-%{_sysconfdir}/systemd/journal-remote.conf
-%{_sysconfdir}/systemd/journal-upload.conf
-
 %files units
 %defattr(644,root,root,755)
 %attr(755,root,root) %{_bindir}/systemctl
 %attr(755,root,root) %{_bindir}/systemd-tmpfiles
-
 %{_mandir}/man1/systemctl.1*
 %{_mandir}/man5/tmpfiles.d.5*
 %{_mandir}/man8/systemd-tmpfiles.8*
@@ -874,10 +859,21 @@ fi
 %dir %{_sysconfdir}/systemd/system/sockets.target.wants
 %dir %{_sysconfdir}/systemd/system/sysinit.target.wants
 
-%dir /var/lib/systemd
-%dir /var/lib/systemd/catalog
-%dir /var/log/journal
-%ghost /var/lib/systemd/catalog/database
+%files journal-gatewayd
+%defattr(644,root,root,755)
+%attr(755,root,root) %{_prefix}/lib/systemd/systemd-journal-gatewayd
+%attr(755,root,root) %{_prefix}/lib/systemd/systemd-journal-remote
+%attr(755,root,root) %{_prefix}/lib/systemd/systemd-journal-upload
+%{_datadir}/systemd/gatewayd
+%{_prefix}/lib/systemd/system/systemd-journal-gatewayd.service
+%{_prefix}/lib/systemd/system/systemd-journal-gatewayd.socket
+%{_prefix}/lib/systemd/system/systemd-journal-remote.service
+%{_prefix}/lib/systemd/system/systemd-journal-remote.socket
+%{_prefix}/lib/systemd/system/systemd-journal-upload.service
+%{_prefix}/lib/sysusers.d/systemd-remote.conf
+%{_prefix}/lib/tmpfiles.d/systemd-remote.conf
+%{_sysconfdir}/systemd/journal-remote.conf
+%{_sysconfdir}/systemd/journal-upload.conf
 
 %files libs
 %defattr(644,root,root,755)
