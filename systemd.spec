@@ -7,13 +7,13 @@
 #
 Summary:	A System and Service Manager
 Name:		systemd
-Version:	219
-Release:	1
+Version:	220
+Release:	2
 Epoch:		1
 License:	GPL v2+
 Group:		Base
 Source0:	http://www.freedesktop.org/software/systemd/%{name}-%{version}.tar.xz
-# Source0-md5:	e0d6c9a4b4f69f66932d2230298c9a34
+# Source0-md5:	60acd92b04c0f5faa806678abd433014
 # user session
 Source1:	%{name}-user.pamd
 Source2:	dbus.service
@@ -66,9 +66,10 @@ Requires:	kbd
 Requires:	kmod
 Requires:	udev = %{epoch}:%{version}-%{release}
 Requires:	util-linux
+# where is systemd-boot ???
+#Obsoletes:	gummiboot
 Obsoletes:	nss-myhostname
 Suggests:	fuse
-Suggests:	gummiboot
 BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
 
 %define		skip_post_check_so	libnss_myhostname.so.2
@@ -191,11 +192,20 @@ Zsh auto-complete site functions.
 %{__sed} -i "s|kernel\.sysrq.*|kernel.sysrq = 1|" \
 	sysctl.d/50-default.conf
 
+# remove pregenerated files
+find src -name \*-from-name.gperf -exec rm -f {} +
+find src -name \*-to-name.h -exec rm -f {} +
+
 %build
+%if 0
+%{__intltoolize}
+%{__libtoolize}
 %{__aclocal} -I m4
 %{__autoconf}
 %{__autoheader}
 %{__automake}
+%endif
+./autogen.sh
 %configure \
 	--disable-audit		\
 	--disable-ima		\
@@ -294,7 +304,6 @@ systemctl start systemd-udev.service ||:
 udevadm hwdb --update ||:
 journalctl --update-catalog ||:
 systemd-tmpfiles --create ||:
-
 if [ "$1" = "1" ] ; then
     /usr/bin/systemctl enable \
 	getty@tty1.service \
@@ -412,6 +421,10 @@ fi
 %dir %{_prefix}/lib/kernel/install.d
 %attr(755,root,root) %{_prefix}/lib/kernel/install.d/50-depmod.install
 %attr(755,root,root) %{_prefix}/lib/kernel/install.d/90-loaderentry.install
+%dir %{_prefix}/lib/systemd/boot
+%dir %{_prefix}/lib/systemd/boot/efi
+%{_prefix}/lib/systemd/boot/efi/linuxx64.efi.stub
+%{_prefix}/lib/systemd/boot/efi/systemd-bootx64.efi
 
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-ac-power
@@ -422,9 +435,11 @@ fi
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-bus-proxyd
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-cgroups-agent
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-cryptsetup
+%attr(755,root,root) %{_prefix}/lib/systemd/systemd-export
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-fsck
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-hibernate-resume
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-hostnamed
+%attr(755,root,root) %{_prefix}/lib/systemd/systemd-import
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-importd
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-initctl
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-journald
@@ -444,7 +459,6 @@ fi
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-resolved
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-rfkill
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-shutdown
-%attr(755,root,root) %{_prefix}/lib/systemd/systemd-shutdownd
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-sleep
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-socket-proxyd
 %attr(755,root,root) %{_prefix}/lib/systemd/systemd-sysctl
@@ -521,6 +535,7 @@ fi
 %{_sysconfdir}/dbus-1/system.d/org.freedesktop.timedate1.conf
 
 %{_prefix}/lib/tmpfiles.d/etc.conf
+%{_prefix}/lib/tmpfiles.d/home.conf
 %{_prefix}/lib/tmpfiles.d/systemd-nologin.conf
 %{_prefix}/lib/tmpfiles.d/systemd.conf
 %{_prefix}/lib/tmpfiles.d/tmp.conf
@@ -600,6 +615,7 @@ fi
 # *.target.wants
 %{_prefix}/lib/systemd/system/local-fs.target.wants/systemd-remount-fs.service
 %{_prefix}/lib/systemd/system/local-fs.target.wants/tmp.mount
+%{_prefix}/lib/systemd/system/local-fs.target.wants/var-lib-machines.mount
 %{_prefix}/lib/systemd/system/multi-user.target.wants/getty.target
 %{_prefix}/lib/systemd/system/multi-user.target.wants/systemd-ask-password-wall.path
 %{_prefix}/lib/systemd/system/multi-user.target.wants/systemd-logind.service
@@ -607,7 +623,6 @@ fi
 %{_prefix}/lib/systemd/system/sockets.target.wants/systemd-initctl.socket
 %{_prefix}/lib/systemd/system/sockets.target.wants/systemd-journald-audit.socket
 %{_prefix}/lib/systemd/system/sockets.target.wants/systemd-journald.socket
-%{_prefix}/lib/systemd/system/sockets.target.wants/systemd-shutdownd.socket
 %{_prefix}/lib/systemd/system/sysinit.target.wants/cryptsetup.target
 %{_prefix}/lib/systemd/system/sysinit.target.wants/dev-hugepages.mount
 %{_prefix}/lib/systemd/system/sysinit.target.wants/dev-mqueue.mount
@@ -645,6 +660,7 @@ fi
 %{_prefix}/lib/systemd/system/sys-kernel-config.mount
 %{_prefix}/lib/systemd/system/sys-kernel-debug.mount
 %{_prefix}/lib/systemd/system/tmp.mount
+%{_prefix}/lib/systemd/system/var-lib-machines.mount
 
 # sockets
 %{_prefix}/lib/systemd/system/syslog.socket
@@ -653,7 +669,6 @@ fi
 %{_prefix}/lib/systemd/system/systemd-journald-dev-log.socket
 %{_prefix}/lib/systemd/system/systemd-journald.socket
 %{_prefix}/lib/systemd/system/systemd-networkd.socket
-%{_prefix}/lib/systemd/system/systemd-shutdownd.socket
 
 # timers
 %{_prefix}/lib/systemd/system/timers.target
@@ -722,7 +737,6 @@ fi
 %{_prefix}/lib/systemd/system/systemd-remount-fs.service
 %{_prefix}/lib/systemd/system/systemd-resolved.service
 %{_prefix}/lib/systemd/system/systemd-rfkill@.service
-%{_prefix}/lib/systemd/system/systemd-shutdownd.service
 %{_prefix}/lib/systemd/system/systemd-suspend.service
 %{_prefix}/lib/systemd/system/systemd-sysctl.service
 %{_prefix}/lib/systemd/system/systemd-sysusers.service
@@ -931,15 +945,16 @@ fi
 # rules
 %{_prefix}/lib/udev/rules.d/42-usb-hid-pm.rules
 %{_prefix}/lib/udev/rules.d/50-udev-default.rules
+%{_prefix}/lib/udev/rules.d/60-block.rules
 %{_prefix}/lib/udev/rules.d/60-cdrom_id.rules
 %{_prefix}/lib/udev/rules.d/60-drm.rules
-%{_prefix}/lib/udev/rules.d/60-keyboard.rules
+%{_prefix}/lib/udev/rules.d/60-evdev.rules
 %{_prefix}/lib/udev/rules.d/60-persistent-alsa.rules
 %{_prefix}/lib/udev/rules.d/60-persistent-input.rules
-%{_prefix}/lib/udev/rules.d/60-persistent-serial.rules
 %{_prefix}/lib/udev/rules.d/60-persistent-storage-tape.rules
 %{_prefix}/lib/udev/rules.d/60-persistent-storage.rules
 %{_prefix}/lib/udev/rules.d/60-persistent-v4l.rules
+%{_prefix}/lib/udev/rules.d/60-serial.rules
 %{_prefix}/lib/udev/rules.d/61-accelerometer.rules
 %{_prefix}/lib/udev/rules.d/64-btrfs.rules
 %{_prefix}/lib/udev/rules.d/70-mouse.rules
@@ -947,12 +962,10 @@ fi
 %{_prefix}/lib/udev/rules.d/70-touchpad.rules
 %{_prefix}/lib/udev/rules.d/75-net-description.rules
 %{_prefix}/lib/udev/rules.d/75-probe_mtd.rules
-%{_prefix}/lib/udev/rules.d/75-tty-description.rules
 %{_prefix}/lib/udev/rules.d/78-sound-card.rules
 %{_prefix}/lib/udev/rules.d/80-drivers.rules
 %{_prefix}/lib/udev/rules.d/80-net-setup-link.rules
 %{_prefix}/lib/udev/rules.d/90-vconsole.rules
-%{_prefix}/lib/udev/rules.d/95-udev-late.rules
 
 # hwdb
 %{_prefix}/lib/udev/hwdb.d/20-OUI.hwdb
@@ -965,8 +978,10 @@ fi
 %{_prefix}/lib/udev/hwdb.d/20-sdio-vendor-model.hwdb
 %{_prefix}/lib/udev/hwdb.d/20-usb-classes.hwdb
 %{_prefix}/lib/udev/hwdb.d/20-usb-vendor-model.hwdb
+%{_prefix}/lib/udev/hwdb.d/60-evdev.hwdb
 %{_prefix}/lib/udev/hwdb.d/60-keyboard.hwdb
 %{_prefix}/lib/udev/hwdb.d/70-mouse.hwdb
+%{_prefix}/lib/udev/hwdb.d/70-pointingstick.hwdb
 %{_prefix}/lib/udev/hwdb.d/70-touchpad.hwdb
 
 %{_sysconfdir}/udev/udev.conf
